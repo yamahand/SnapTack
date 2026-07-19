@@ -9,6 +9,8 @@
     <!-- NotifyIcon (トレイ常駐) のために WinForms を併用する -->
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- ThemeMode (Fluent) は実験的 API 扱いのため WPF0001 を抑制する (CLAUDE.md) -->
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

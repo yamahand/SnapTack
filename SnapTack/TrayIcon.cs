@@ -11,25 +11,32 @@ public sealed class TrayIcon : IDisposable
 {
     // UI 文字列 (将来の英語化を見据えて集約)
     private const string TooltipText = "SnapTack";
-    private const string MenuCaptureText = "キャプチャ(&C)\tCtrl+Shift+Z";
+    private const string MenuCaptureTextFormat = "キャプチャ(&C)\t{0}";
     private const string MenuSettingsText = "設定(&S)...";
     private const string MenuExitText = "終了(&X)";
 
     private readonly NotifyIcon _notifyIcon;
+    private readonly ToolStripMenuItem _captureItem;
 
     /// <summary>メニューの「キャプチャ」またはアイコンのダブルクリックで発火する。</summary>
     public event EventHandler? CaptureRequested;
 
+    /// <summary>メニューの「設定」で発火する。</summary>
+    public event EventHandler? SettingsRequested;
+
     /// <summary>メニューの「終了」で発火する。</summary>
     public event EventHandler? ExitRequested;
 
-    public TrayIcon()
+    public TrayIcon(string hotkeyDisplayText)
     {
         var menu = new ContextMenuStrip();
-        menu.Items.Add(MenuCaptureText, image: null, (_, _) => CaptureRequested?.Invoke(this, EventArgs.Empty));
 
-        // 設定画面は M5 で実装するため仮・無効 (MILESTONES M1)
-        var settingsItem = new ToolStripMenuItem(MenuSettingsText) { Enabled = false };
+        _captureItem = new ToolStripMenuItem(string.Format(MenuCaptureTextFormat, hotkeyDisplayText));
+        _captureItem.Click += (_, _) => CaptureRequested?.Invoke(this, EventArgs.Empty);
+        menu.Items.Add(_captureItem);
+
+        var settingsItem = new ToolStripMenuItem(MenuSettingsText);
+        settingsItem.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
         menu.Items.Add(settingsItem);
 
         menu.Items.Add(new ToolStripSeparator());
@@ -44,6 +51,12 @@ public sealed class TrayIcon : IDisposable
             Visible = true,
         };
         _notifyIcon.DoubleClick += (_, _) => CaptureRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>ホットキー変更時にメニューの表記を更新する。</summary>
+    public void UpdateHotkeyText(string hotkeyDisplayText)
+    {
+        _captureItem.Text = string.Format(MenuCaptureTextFormat, hotkeyDisplayText);
     }
 
     public void Dispose()

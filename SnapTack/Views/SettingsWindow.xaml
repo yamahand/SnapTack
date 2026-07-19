@@ -1,0 +1,23 @@
+<Window x:Class="SnapTack.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        ThemeMode="System"
+        SizeToContent="WidthAndHeight"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="True">
+    <StackPanel Margin="24" MinWidth="320">
+        <TextBlock x:Name="HotkeyLabel" Margin="0,0,0,8" />
+        <TextBox x:Name="HotkeyBox"
+                 IsReadOnly="True"
+                 IsReadOnlyCaretVisible="False"
+                 Cursor="Arrow"
+                 PreviewKeyDown="OnHotkeyBoxPreviewKeyDown"
+                 PreviewTextInput="OnHotkeyBoxPreviewTextInput" />
+        <TextBlock x:Name="HotkeyHint" Margin="0,8,0,0" FontSize="12" Opacity="0.7" TextWrapping="Wrap" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+            <Button x:Name="SaveButton" MinWidth="88" IsDefault="True" Click="OnSaveClick" />
+            <Button x:Name="CancelButton" MinWidth="88" Margin="8,0,0,0" IsCancel="True" />
+        </StackPanel>
+    </StackPanel>
+</Window>
