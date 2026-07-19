@@ -11,7 +11,16 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <!-- ThemeMode (Fluent) は実験的 API 扱いのため WPF0001 を抑制する (CLAUDE.md) -->
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
+    <ApplicationIcon>Assets\SnapTack.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <Product>SnapTack</Product>
+    <Description>画面の範囲キャプチャを付箋として貼れる常駐ツール</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- トレイアイコンが実行時に読み込むため WPF リソースとしても埋め込む -->
+    <Resource Include="Assets\SnapTack.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- WinForms の暗黙 using は WPF の型 (Application, MessageBox 等) と衝突するため外し、必要なファイルで明示 using する -->

@@ -17,6 +17,7 @@ public sealed class TrayIcon : IDisposable
 
     private readonly NotifyIcon _notifyIcon;
     private readonly ToolStripMenuItem _captureItem;
+    private readonly Icon _icon;
 
     /// <summary>メニューの「キャプチャ」またはアイコンのダブルクリックで発火する。</summary>
     public event EventHandler? CaptureRequested;
@@ -42,15 +43,25 @@ public sealed class TrayIcon : IDisposable
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(MenuExitText, image: null, (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty));
 
+        _icon = LoadAppIcon();
         _notifyIcon = new NotifyIcon
         {
-            // アプリ固有のアイコンは M6 で作成する。それまでは標準アイコンで代用
-            Icon = SystemIcons.Application,
+            Icon = _icon,
             Text = TooltipText,
             ContextMenuStrip = menu,
             Visible = true,
         };
         _notifyIcon.DoubleClick += (_, _) => CaptureRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>WPF リソースの .ico からトレイ用サイズ (DPI 追従) のアイコンを読み込む。</summary>
+    private static Icon LoadAppIcon()
+    {
+        var resource = System.Windows.Application.GetResourceStream(
+            new Uri("pack://application:,,,/Assets/SnapTack.ico"))
+            ?? throw new InvalidOperationException("アプリアイコンのリソースが見つかりません。");
+        using var stream = resource.Stream;
+        return new Icon(stream, SystemInformation.SmallIconSize);
     }
 
     /// <summary>ホットキー変更時にメニューの表記を更新する。</summary>
@@ -65,5 +76,6 @@ public sealed class TrayIcon : IDisposable
         _notifyIcon.Visible = false;
         _notifyIcon.ContextMenuStrip?.Dispose();
         _notifyIcon.Dispose();
+        _icon.Dispose();
     }
 }
