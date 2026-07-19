@@ -41,8 +41,13 @@ public partial class SettingsWindow : Window
 
     private void OnHotkeyBoxPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        // Alt 併用時は実キーが SystemKey 側に入る
-        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        // Alt 併用時は SystemKey 側、IME 有効時は ImeProcessedKey 側に実キーが入る
+        var key = e.Key switch
+        {
+            Key.System => e.SystemKey,
+            Key.ImeProcessed => e.ImeProcessedKey,
+            _ => e.Key,
+        };
 
         // 修飾キーなしの Enter / Esc / Tab は取り込まず、通常のダイアログ操作
         // (保存 / キャンセル / フォーカス移動) として既定処理に流す
