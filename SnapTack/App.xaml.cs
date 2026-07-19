@@ -20,8 +20,6 @@ public partial class App : Application
         "他のアプリと競合している可能性があります。\n" +
         "トレイメニューからのキャプチャは引き続き使用できます。";
     private const string CaptureFailedMessage = "画面のキャプチャに失敗しました。";
-    private const string ClipboardCopyFailedMessage =
-        "クリップボードへのコピーに失敗しました。\n他のアプリがクリップボードを使用中の可能性があります。";
 
     // 二重起動防止用の Mutex 名 (同一ユーザーセッション内で一意)
     private const string MutexName = "SnapTack_SingleInstanceMutex";
@@ -118,16 +116,8 @@ public partial class App : Application
         overlay.ShowDialog();
         if (overlay.ResultImage is { } image)
         {
-            // M3 の暫定動作: クリップボードへコピーして確認できるようにする。M4 で付箋の生成に置き換える
-            try
-            {
-                Clipboard.SetImage(image);
-            }
-            catch (ExternalException)
-            {
-                // 他プロセスがクリップボードをロックしていると失敗する
-                MessageBox.Show(ClipboardCopyFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
+            // 付箋は自己完結させ、App 側で参照は保持しない (全部閉じても OnExplicitShutdown なので継続する)
+            new ScrapWindow(image, overlay.ResultPhysicalRect).Show();
         }
     }
 }
