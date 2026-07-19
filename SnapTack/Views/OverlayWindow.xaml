@@ -1,0 +1,55 @@
+<Window x:Class="SnapTack.Views.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        WindowStartupLocation="Manual"
+        Left="0"
+        Top="0"
+        WindowState="Maximized"
+        Topmost="True"
+        ShowInTaskbar="False"
+        Cursor="Cross"
+        SizeChanged="OnSizeChanged"
+        Loaded="OnLoaded"
+        KeyDown="OnKeyDown"
+        MouseLeftButtonDown="OnMouseLeftButtonDown"
+        MouseMove="OnMouseMove"
+        MouseLeftButtonUp="OnMouseLeftButtonUp"
+        MouseRightButtonDown="OnMouseRightButtonDown">
+    <Grid>
+        <!-- フリーズ画像 (物理px)。ウィンドウ全面 (DIP) に引き伸ばすことで等倍表示になる -->
+        <Image x:Name="FrozenImage" Stretch="Fill" />
+
+        <!-- 薄暗レイヤ。選択範囲を Exclude でくり抜く -->
+        <Path Fill="#66000000">
+            <Path.Data>
+                <CombinedGeometry GeometryCombineMode="Exclude">
+                    <CombinedGeometry.Geometry1>
+                        <RectangleGeometry x:Name="FullGeometry" />
+                    </CombinedGeometry.Geometry1>
+                    <CombinedGeometry.Geometry2>
+                        <RectangleGeometry x:Name="SelectionGeometry" />
+                    </CombinedGeometry.Geometry2>
+                </CombinedGeometry>
+            </Path.Data>
+        </Path>
+
+        <Canvas>
+            <!-- 選択枠 1px -->
+            <Rectangle x:Name="SelectionBorder"
+                       Stroke="White"
+                       StrokeThickness="1"
+                       SnapsToDevicePixels="True"
+                       Visibility="Collapsed" />
+            <!-- サイズラベル (物理px表記) -->
+            <Border x:Name="SizeLabel"
+                    Background="#CC202020"
+                    CornerRadius="2"
+                    Padding="6,2"
+                    Visibility="Collapsed">
+                <TextBlock x:Name="SizeText" Foreground="White" FontSize="12" />
+            </Border>
+        </Canvas>
+    </Grid>
+</Window>
