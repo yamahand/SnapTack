@@ -41,11 +41,18 @@ public partial class SettingsWindow : Window
 
     private void OnHotkeyBoxPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        // ホットキーの取り込み専用にするため、既定のキー処理 (フォーカス移動等) はすべて止める
-        e.Handled = true;
-
         // Alt 併用時は実キーが SystemKey 側に入る
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
+
+        // 修飾キーなしの Enter / Esc / Tab は取り込まず、通常のダイアログ操作
+        // (保存 / キャンセル / フォーカス移動) として既定処理に流す
+        if (Keyboard.Modifiers == ModifierKeys.None && key is Key.Enter or Key.Escape or Key.Tab)
+        {
+            return;
+        }
+
+        // 上記以外はホットキーの取り込み専用にするため、既定のキー処理は止める
+        e.Handled = true;
 
         // 修飾キー単体は無視して、本体キーが押されるのを待つ
         if (key is Key.None or Key.System

@@ -14,6 +14,7 @@ dotnet publish (Join-Path $repoRoot "SnapTack\SnapTack.csproj") `
     -c Release `
     -r $Runtime `
     --self-contained true `
+    -p:Version=$Version `
     -p:PublishSingleFile=true `
     -p:IncludeNativeLibrariesForSelfExtract=true `
     -p:DebugType=None `
