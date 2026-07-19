@@ -1,7 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace SnapTack.Views;
@@ -142,15 +141,20 @@ public partial class OverlayWindow : Window
         Canvas.SetTop(SizeLabel, labelY);
     }
 
-    /// <summary>DIP の矩形を物理ピクセルの矩形へ変換する。</summary>
+    /// <summary>DIP の矩形をスクリーンショットの物理ピクセル矩形へ変換する。</summary>
     private Int32Rect ToPhysicalRect(Rect dipRect)
     {
-        var dpi = VisualTreeHelper.GetDpi(this);
+        // フリーズ画像はウィンドウ全面に Stretch=Fill で表示しているため、
+        // ウィンドウ全体 (DIP) → 画像全体 (物理px) の比率で変換する。
+        // オーバーレイが画面全体を覆っているとき、この比率は DPI スケールと一致する。
+        // 万一ウィンドウサイズが画面と一致しない場合でも、見た目どおりの範囲が切り出される
+        double scaleX = _screenshot.PixelWidth / ActualWidth;
+        double scaleY = _screenshot.PixelHeight / ActualHeight;
         // DIP → 物理px (端は四捨五入)
-        int x = (int)Math.Round(dipRect.X * dpi.DpiScaleX);
-        int y = (int)Math.Round(dipRect.Y * dpi.DpiScaleY);
-        int right = (int)Math.Round(dipRect.Right * dpi.DpiScaleX);
-        int bottom = (int)Math.Round(dipRect.Bottom * dpi.DpiScaleY);
+        int x = (int)Math.Round(dipRect.X * scaleX);
+        int y = (int)Math.Round(dipRect.Y * scaleY);
+        int right = (int)Math.Round(dipRect.Right * scaleX);
+        int bottom = (int)Math.Round(dipRect.Bottom * scaleY);
         return new Int32Rect(x, y, Math.Max(0, right - x), Math.Max(0, bottom - y));
     }
 
