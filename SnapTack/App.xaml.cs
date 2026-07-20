@@ -25,14 +25,13 @@ public partial class App : Application
     // 二重起動防止用の Mutex 名 (同一ユーザーセッション内で一意)
     private const string MutexName = "SnapTack_SingleInstanceMutex";
 
-    private readonly IScreenCapturer _screenCapturer = new GdiScreenCapturer();
     private readonly SettingsService _settings = new(new SettingsStore());
+    private readonly CaptureController _capture = new(new GdiScreenCapturer());
 
     private Mutex? _mutex;
     private TrayIcon? _trayIcon;
     private GlobalHotkey? _hotkey;
     private SettingsWindow? _settingsWindow;
-    private bool _capturing;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -47,6 +46,10 @@ public partial class App : Application
         }
 
         base.OnStartup(e);
+
+        // 付箋は自己完結させ、App 側で参照は保持しない (全部閉じても OnExplicitShutdown なので継続する)
+        _capture.SelectionCompleted += (image, physicalRect) =>
+            new ScrapWindow(image, physicalRect, _settings).Show();
 
         _trayIcon = new TrayIcon(_settings.Current.GetHotkeyDisplayText());
         _trayIcon.CaptureRequested += OnCaptureRequested;
@@ -93,42 +96,14 @@ public partial class App : Application
 
     private void OnCaptureRequested(object? sender, EventArgs e)
     {
-        // オーバーレイ表示中の再キャプチャ要求は無視する (SPEC 4.3)
-        if (_capturing)
-        {
-            return;
-        }
-        _capturing = true;
+        // オーバーレイ表示中の再要求は CaptureController 側で無視される (SPEC 4.3)
         try
         {
-            StartCapture();
-        }
-        finally
-        {
-            _capturing = false;
-        }
-    }
-
-    private void StartCapture()
-    {
-        // ホットキー押下の瞬間に画面全体をフリーズさせる (SPEC 4.2)
-        System.Windows.Media.Imaging.BitmapSource screenshot;
-        try
-        {
-            screenshot = _screenCapturer.CapturePrimaryScreen();
+            _capture.Start();
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or ExternalException)
         {
             MessageBox.Show(CaptureFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        var overlay = new OverlayWindow(screenshot);
-        overlay.ShowDialog();
-        if (overlay.ResultImage is { } image)
-        {
-            // 付箋は自己完結させ、App 側で参照は保持しない (全部閉じても OnExplicitShutdown なので継続する)
-            new ScrapWindow(image, overlay.ResultPhysicalRect, _settings).Show();
         }
     }
 
