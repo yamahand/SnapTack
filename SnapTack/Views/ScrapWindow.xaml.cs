@@ -30,7 +30,7 @@ public partial class ScrapWindow : Window
         "クリップボードへのコピーに失敗しました。\n他のアプリがクリップボードを使用中の可能性があります。";
     private const string SavePngFailedMessage =
         "PNG の保存に失敗しました。\n保存先のアクセス権や空き容量を確認してください。";
-    private const string SaveFileNameFormat = "SnapTack_{0:yyyyMMdd_HHmmss}";
+    private const string SaveFileNameFormat = "SnapTack_{0:yyyyMMdd_HHmmss}.png";
     private const string SaveFileFilter = "PNG 画像 (*.png)|*.png";
     private const string MenuOpacityText = "不透明度";
     private const string OpacityPresetFormat = "{0}%";
@@ -56,6 +56,10 @@ public partial class ScrapWindow : Window
     private bool _isDice;
     private MenuItem? _diceMenuItem;
     private Size _dipSizeBeforeDice; // サイコロ化直前の DIP サイズ (WPF 既定モードでの復元用)
+
+    // 左ボタン押下位置 (DIP)。しきい値を超えて動いたら初めて DragMove を開始する。
+    // これにより「移動を伴わないクリック」のみがダブルクリック判定に残る (SPEC-v1.x 4)
+    private Point? _leftButtonDownDip;
 
     public ScrapWindow(BitmapSource image, Int32Rect physicalRect, SettingsService settings)
     {
@@ -177,14 +181,40 @@ public partial class ScrapWindow : Window
 
     private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        // ダブルクリック判定はシステムのダブルクリック距離内に限られるため、
-        // ドラッグ移動後のクリックは ClickCount=1 に戻り、移動と干渉しない (SPEC-v1.x 4)
         if (e.ClickCount == 2)
         {
+            // ダブルクリックでサイコロ化 ⇔ 元に戻す。
+            // 移動開始前に押下位置をクリアし、後続の Up が誤ってドラッグ扱いされないようにする
+            _leftButtonDownDip = null;
             ToggleDice();
             return;
         }
+        // まだ移動しない。しきい値を超えたら OnMouseMove で DragMove を開始する
+        _leftButtonDownDip = e.GetPosition(this);
+    }
+
+    private void OnMouseMove(object sender, MouseEventArgs e)
+    {
+        if (_leftButtonDownDip is not { } start || e.LeftButton != MouseButtonState.Pressed)
+        {
+            return;
+        }
+        var current = e.GetPosition(this);
+        if (Math.Abs(current.X - start.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(current.Y - start.Y) < SystemParameters.MinimumVerticalDragDistance)
+        {
+            return;
+        }
+
+        // しきい値を超えたのでドラッグ移動を開始する。DragMove はボタンが離れるまでブロックする
+        _leftButtonDownDip = null;
         DragMove();
+    }
+
+    private void OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        // 移動を伴わなかったクリック。ダブルクリック待ちのため状態だけ解除する
+        _leftButtonDownDip = null;
     }
 
     /// <summary>サイコロ (48×48 DIP タイル) ⇔ 元サイズをトグルする (SPEC-v1.x 2.3)。</summary>

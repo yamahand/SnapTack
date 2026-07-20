@@ -11,6 +11,8 @@
         KeyDown="OnKeyDown"
         MouseDown="OnMouseDown"
         MouseLeftButtonDown="OnMouseLeftButtonDown"
+        MouseMove="OnMouseMove"
+        MouseLeftButtonUp="OnMouseLeftButtonUp"
         MouseWheel="OnMouseWheel">
     <Grid>
         <!-- キャプチャ画像 (物理px)。ウィンドウは同じ物理サイズの DIP なので等倍表示になる -->
