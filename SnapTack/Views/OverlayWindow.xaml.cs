@@ -51,16 +51,28 @@ public partial class OverlayWindow : Window
         // 混在 DPI 環境でも正確にモニタ全面を覆うため、物理座標で直接配置する
         var hwnd = new WindowInteropHelper(this).Handle;
         var bounds = _monitor.PhysicalBounds;
-        User32.SetWindowPos(hwnd, IntPtr.Zero, bounds.X, bounds.Y, bounds.Width, bounds.Height,
+        bool placed = User32.SetWindowPos(hwnd, IntPtr.Zero, bounds.X, bounds.Y, bounds.Width, bounds.Height,
             User32.SWP_NOZORDER | User32.SWP_NOACTIVATE);
 
-        // 配置で確定したモニタ DPI に合わせて DIP サイズを固定し、
-        // WM_DPICHANGED による WPF 側の再配置で位置がずれないよう再固定する
         var dpi = VisualTreeHelper.GetDpi(this);
-        Width = bounds.Width / dpi.DpiScaleX;
-        Height = bounds.Height / dpi.DpiScaleY;
-        User32.SetWindowPos(hwnd, IntPtr.Zero, bounds.X, bounds.Y, 0, 0,
-            User32.SWP_NOZORDER | User32.SWP_NOACTIVATE | User32.SWP_NOSIZE);
+        if (placed)
+        {
+            // 配置で確定したモニタ DPI に合わせて DIP サイズを固定し、
+            // WM_DPICHANGED による WPF 側の再配置で位置がずれないよう再固定する
+            Width = bounds.Width / dpi.DpiScaleX;
+            Height = bounds.Height / dpi.DpiScaleY;
+            User32.SetWindowPos(hwnd, IntPtr.Zero, bounds.X, bounds.Y, 0, 0,
+                User32.SWP_NOZORDER | User32.SWP_NOACTIVATE | User32.SWP_NOSIZE);
+        }
+        else
+        {
+            // 物理座標での配置に失敗した場合は WPF の DIP 配置へフォールバックし、
+            // オーバーレイがモニタ全面を覆えず操作不能になるのを防ぐ
+            Left = bounds.X / dpi.DpiScaleX;
+            Top = bounds.Y / dpi.DpiScaleY;
+            Width = bounds.Width / dpi.DpiScaleX;
+            Height = bounds.Height / dpi.DpiScaleY;
+        }
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)

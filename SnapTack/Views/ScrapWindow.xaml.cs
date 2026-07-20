@@ -80,17 +80,29 @@ public partial class ScrapWindow : Window
         // キャプチャ元と同じ位置・等倍サイズで配置する (SPEC 4.4)。
         // 混在 DPI 環境でも正確に重なるよう、物理座標で直接配置する (SPEC-v1.x 2.4)
         var hwnd = new WindowInteropHelper(this).Handle;
-        User32.SetWindowPos(hwnd, IntPtr.Zero,
+        bool placed = User32.SetWindowPos(hwnd, IntPtr.Zero,
             _physicalRect.X, _physicalRect.Y, _physicalRect.Width, _physicalRect.Height,
             User32.SWP_NOZORDER | User32.SWP_NOACTIVATE);
 
-        // 配置で確定したキャプチャ元モニタの DPI に合わせて DIP サイズを固定し、
-        // WM_DPICHANGED による WPF 側の再配置で位置がずれないよう再固定する
         var dpi = VisualTreeHelper.GetDpi(this);
-        Width = _physicalRect.Width / dpi.DpiScaleX;
-        Height = _physicalRect.Height / dpi.DpiScaleY;
-        User32.SetWindowPos(hwnd, IntPtr.Zero, _physicalRect.X, _physicalRect.Y, 0, 0,
-            User32.SWP_NOZORDER | User32.SWP_NOACTIVATE | User32.SWP_NOSIZE);
+        if (placed)
+        {
+            // 配置で確定したキャプチャ元モニタの DPI に合わせて DIP サイズを固定し、
+            // WM_DPICHANGED による WPF 側の再配置で位置がずれないよう再固定する
+            Width = _physicalRect.Width / dpi.DpiScaleX;
+            Height = _physicalRect.Height / dpi.DpiScaleY;
+            User32.SetWindowPos(hwnd, IntPtr.Zero, _physicalRect.X, _physicalRect.Y, 0, 0,
+                User32.SWP_NOZORDER | User32.SWP_NOACTIVATE | User32.SWP_NOSIZE);
+        }
+        else
+        {
+            // 物理座標での配置に失敗した場合は WPF の DIP 配置へフォールバックする。
+            // 混在 DPI では厳密には重ならないが、付箋を確実に画面へ出すことを優先する
+            Left = _physicalRect.X / dpi.DpiScaleX;
+            Top = _physicalRect.Y / dpi.DpiScaleY;
+            Width = _physicalRect.Width / dpi.DpiScaleX;
+            Height = _physicalRect.Height / dpi.DpiScaleY;
+        }
     }
 
     /// <summary>
@@ -310,22 +322,28 @@ public partial class ScrapWindow : Window
             return;
         }
 
+        string? savedDirectory;
         try
         {
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(_image));
-            using var stream = File.Create(dialog.FileName);
-            encoder.Save(stream);
+            using (var stream = File.Create(dialog.FileName))
+            {
+                encoder.Save(stream);
+            }
+            savedDirectory = Path.GetDirectoryName(dialog.FileName);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ExternalException)
+        catch (Exception ex) when (
+            ex is IOException or UnauthorizedAccessException or ExternalException
+                or ArgumentException or NotSupportedException or System.Security.SecurityException)
         {
-            // 失敗しても付箋は維持する
+            // 不正なパスの手入力・権限不足・書き込み失敗など。付箋は維持する (SPEC-v1.x 2.1)
             MessageBox.Show(SavePngFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
         // 次回のデフォルト保存先として記憶する。永続化失敗は保存自体には影響しないため通知しない
-        _settings.Current.LastSaveDirectory = Path.GetDirectoryName(dialog.FileName);
+        _settings.Current.LastSaveDirectory = savedDirectory;
         _settings.Save();
     }
 

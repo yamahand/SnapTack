@@ -14,6 +14,7 @@ internal static class User32
     /// 混在 DPI 環境では WPF の Left/Top (DIP) 経由の配置が不正確になるため、こちらを使う。
     /// </summary>
     [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool SetWindowPos(
         IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
 }
