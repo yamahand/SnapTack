@@ -10,7 +10,8 @@
         SnapsToDevicePixels="True"
         KeyDown="OnKeyDown"
         MouseDown="OnMouseDown"
-        MouseLeftButtonDown="OnMouseLeftButtonDown">
+        MouseLeftButtonDown="OnMouseLeftButtonDown"
+        MouseWheel="OnMouseWheel">
     <Grid>
         <!-- キャプチャ画像 (物理px)。ウィンドウは同じ物理サイズの DIP なので等倍表示になる -->
         <Image x:Name="ScrapImage"

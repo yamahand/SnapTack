@@ -30,10 +30,21 @@ public partial class ScrapWindow : Window
         "PNG の保存に失敗しました。\n保存先のアクセス権や空き容量を確認してください。";
     private const string SaveFileNameFormat = "SnapTack_{0:yyyyMMdd_HHmmss}";
     private const string SaveFileFilter = "PNG 画像 (*.png)|*.png";
+    private const string MenuOpacityText = "不透明度";
+    private const string OpacityPresetFormat = "{0}%";
+
+    // 不透明度の範囲・ステップ (SPEC-v1.x 2.2)
+    private const int OpacityMinPercent = 20;
+    private const int OpacityMaxPercent = 100;
+    private const int OpacityStepPercent = 10;
+    private static readonly int[] OpacityPresets = [100, 75, 50, 25];
 
     private readonly BitmapSource _image;      // 物理ピクセル (Freeze 済み)
     private readonly Int32Rect _physicalRect;  // キャプチャ元の位置・サイズ (物理px、プライマリモニタ左上原点)
     private readonly SettingsService _settings;
+    private readonly List<MenuItem> _opacityPresetItems = [];
+
+    private int _opacityPercent = OpacityMaxPercent; // 新規付箋は常に 100% (SPEC-v1.x 2.2)
 
     public ScrapWindow(BitmapSource image, Int32Rect physicalRect, SettingsService settings)
     {
@@ -43,6 +54,7 @@ public partial class ScrapWindow : Window
         _settings = settings;
         ScrapImage.Source = image;
         ContextMenu = BuildContextMenu();
+        SetOpacityPercent(_opacityPercent);
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -66,15 +78,56 @@ public partial class ScrapWindow : Window
         var savePngItem = new MenuItem { Header = MenuSavePngText, InputGestureText = MenuSavePngGestureText };
         savePngItem.Click += (_, _) => SaveAsPng();
 
+        // 不透明度プリセット。現在値の項目にチェックを付ける (SPEC-v1.x 2.2)
+        var opacityItem = new MenuItem { Header = MenuOpacityText };
+        foreach (int percent in OpacityPresets)
+        {
+            var presetItem = new MenuItem { Header = string.Format(OpacityPresetFormat, percent), Tag = percent };
+            presetItem.Click += (_, _) => SetOpacityPercent((int)presetItem.Tag);
+            _opacityPresetItems.Add(presetItem);
+            opacityItem.Items.Add(presetItem);
+        }
+
         var closeItem = new MenuItem { Header = MenuCloseText, InputGestureText = MenuCloseGestureText };
         closeItem.Click += (_, _) => Close();
 
         var menu = new ContextMenu();
         menu.Items.Add(copyItem);
         menu.Items.Add(savePngItem);
+        menu.Items.Add(opacityItem);
         menu.Items.Add(new Separator());
         menu.Items.Add(closeItem);
         return menu;
+    }
+
+    private void OnMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        SetOpacityPercent(NextOpacityPercent(_opacityPercent, e.Delta > 0 ? +1 : -1));
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// ホイール 1 ステップ後の不透明度を返す。
+    /// 10% の倍数以外 (プリセット 75% / 25% 適用後) は最初の 1 ステップを ±5% として倍数へスナップする (SPEC-v1.x 2.2)。
+    /// </summary>
+    private static int NextOpacityPercent(int current, int direction)
+    {
+        int remainder = current % OpacityStepPercent;
+        int next = remainder == 0
+            ? current + direction * OpacityStepPercent
+            : direction > 0 ? current + (OpacityStepPercent - remainder) : current - remainder;
+        return Math.Clamp(next, OpacityMinPercent, OpacityMaxPercent);
+    }
+
+    private void SetOpacityPercent(int percent)
+    {
+        _opacityPercent = percent;
+        // ウィンドウ全体に適用する。コピー / PNG 保存は _image を使うため影響を受けない (SPEC-v1.x 2.2)
+        Opacity = percent / 100.0;
+        foreach (var item in _opacityPresetItems)
+        {
+            item.IsChecked = (int)item.Tag == percent;
+        }
     }
 
     private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
