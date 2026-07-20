@@ -14,6 +14,8 @@ public partial class SettingsWindow : Window
     private const string WindowTitle = "SnapTack 設定";
     private const string HotkeyLabelText = "キャプチャホットキー";
     private const string HotkeyHintText = "ボックスを選択してキーを押すと変更されます。修飾キー (Ctrl / Shift / Alt / Win) を1つ以上含めてください。";
+    private const string KeepPixelSizeLabelText =
+        "DPI (拡大率) が異なるモニタへ付箋を移動しても、物理ピクセル等倍で表示する";
     private const string SaveButtonText = "保存";
     private const string CancelButtonText = "キャンセル";
     private const string ModifierRequiredMessage = "修飾キー (Ctrl / Shift / Alt / Win) を1つ以上含めてください。";
@@ -33,11 +35,13 @@ public partial class SettingsWindow : Window
         Title = WindowTitle;
         HotkeyLabel.Text = HotkeyLabelText;
         HotkeyHint.Text = HotkeyHintText;
+        KeepPixelSizeText.Text = KeepPixelSizeLabelText;
         SaveButton.Content = SaveButtonText;
         CancelButton.Content = CancelButtonText;
 
         _modifiers = current.HotkeyModifiers;
         _key = current.HotkeyKey;
+        KeepPixelSizeCheck.IsChecked = current.KeepPhysicalPixelSize;
         UpdateHotkeyBoxText();
     }
 
@@ -95,6 +99,7 @@ public partial class SettingsWindow : Window
         var result = _current.Clone();
         result.HotkeyModifiers = _modifiers;
         result.HotkeyKey = _key;
+        result.KeepPhysicalPixelSize = KeepPixelSizeCheck.IsChecked == true;
         Result = result;
         Close();
     }

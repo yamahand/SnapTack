@@ -3,9 +3,11 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
+using SnapTack.Interop;
 using SnapTack.Models;
 
 namespace SnapTack.Views;
@@ -46,13 +48,14 @@ public partial class ScrapWindow : Window
     private static readonly int[] OpacityPresets = [100, 75, 50, 25];
 
     private readonly BitmapSource _image;      // 物理ピクセル (Freeze 済み)
-    private readonly Int32Rect _physicalRect;  // キャプチャ元の位置・サイズ (物理px、プライマリモニタ左上原点)
+    private readonly Int32Rect _physicalRect;  // キャプチャ元の位置・サイズ (物理px、仮想スクリーン座標)
     private readonly SettingsService _settings;
     private readonly List<MenuItem> _opacityPresetItems = [];
 
     private int _opacityPercent = OpacityMaxPercent; // 新規付箋は常に 100% (SPEC-v1.x 2.2)
     private bool _isDice;
     private MenuItem? _diceMenuItem;
+    private Size _dipSizeBeforeDice; // サイコロ化直前の DIP サイズ (WPF 既定モードでの復元用)
 
     public ScrapWindow(BitmapSource image, Int32Rect physicalRect, SettingsService settings)
     {
@@ -70,12 +73,40 @@ public partial class ScrapWindow : Window
     {
         base.OnSourceInitialized(e);
 
-        // 物理px → DIP に変換し、キャプチャ元と同じ位置・等倍サイズで配置する (SPEC 4.4)
+        // キャプチャ元と同じ位置・等倍サイズで配置する (SPEC 4.4)。
+        // 混在 DPI 環境でも正確に重なるよう、物理座標で直接配置する (SPEC-v1.x 2.4)
+        var hwnd = new WindowInteropHelper(this).Handle;
+        User32.SetWindowPos(hwnd, IntPtr.Zero,
+            _physicalRect.X, _physicalRect.Y, _physicalRect.Width, _physicalRect.Height,
+            User32.SWP_NOZORDER | User32.SWP_NOACTIVATE);
+
+        // 配置で確定したキャプチャ元モニタの DPI に合わせて DIP サイズを固定し、
+        // WM_DPICHANGED による WPF 側の再配置で位置がずれないよう再固定する
         var dpi = VisualTreeHelper.GetDpi(this);
-        Left = _physicalRect.X / dpi.DpiScaleX;
-        Top = _physicalRect.Y / dpi.DpiScaleY;
         Width = _physicalRect.Width / dpi.DpiScaleX;
         Height = _physicalRect.Height / dpi.DpiScaleY;
+        User32.SetWindowPos(hwnd, IntPtr.Zero, _physicalRect.X, _physicalRect.Y, 0, 0,
+            User32.SWP_NOZORDER | User32.SWP_NOACTIVATE | User32.SWP_NOSIZE);
+    }
+
+    /// <summary>
+    /// DPI の異なるモニタへ移動したときの挙動 (SPEC-v1.x 2.4)。
+    /// 既定は WPF の既定動作 (DIP サイズ維持 = 再スケーリング) に任せ、
+    /// KeepPhysicalPixelSize 有効時のみ物理ピクセル等倍を維持する。
+    /// </summary>
+    protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
+    {
+        base.OnDpiChanged(oldDpi, newDpi);
+        if (_isDice)
+        {
+            // サイコロは 48×48 DIP 固定 (SPEC-v1.x 2.3)
+            return;
+        }
+        if (_settings.Current.KeepPhysicalPixelSize)
+        {
+            Width = _physicalRect.Width / newDpi.DpiScaleX;
+            Height = _physicalRect.Height / newDpi.DpiScaleY;
+        }
     }
 
     /// <summary>コンテキストメニュー: コピー / PNG保存 / 閉じる (SPEC 4.4 + SPEC-v1.x 2.1)。</summary>
@@ -163,6 +194,7 @@ public partial class ScrapWindow : Window
         if (_isDice)
         {
             // 左上位置は維持したままタイル化する
+            _dipSizeBeforeDice = new Size(Width, Height);
             ScrapImage.Visibility = Visibility.Collapsed;
             DiceThumb.Visibility = Visibility.Visible;
             Width = DiceSizeDip;
@@ -172,10 +204,19 @@ public partial class ScrapWindow : Window
         {
             ScrapImage.Visibility = Visibility.Visible;
             DiceThumb.Visibility = Visibility.Collapsed;
-            // 現在のモニタ DPI で物理ピクセル等倍になるサイズへ戻す
-            var dpi = VisualTreeHelper.GetDpi(this);
-            Width = _physicalRect.Width / dpi.DpiScaleX;
-            Height = _physicalRect.Height / dpi.DpiScaleY;
+            if (_settings.Current.KeepPhysicalPixelSize)
+            {
+                // 現在のモニタ DPI で物理ピクセル等倍になるサイズへ戻す
+                var dpi = VisualTreeHelper.GetDpi(this);
+                Width = _physicalRect.Width / dpi.DpiScaleX;
+                Height = _physicalRect.Height / dpi.DpiScaleY;
+            }
+            else
+            {
+                // WPF 既定モード: サイコロ化直前の DIP サイズへ戻す
+                Width = _dipSizeBeforeDice.Width;
+                Height = _dipSizeBeforeDice.Height;
+            }
             ClampIntoCurrentMonitor();
         }
         if (_diceMenuItem is not null)
@@ -187,7 +228,7 @@ public partial class ScrapWindow : Window
     /// <summary>付箋が画面外へはみ出す場合、表示中のモニタ内に収まるよう位置をクランプする (SPEC-v1.x 2.3)。</summary>
     private void ClampIntoCurrentMonitor()
     {
-        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        var hwnd = new WindowInteropHelper(this).Handle;
         if (hwnd == IntPtr.Zero)
         {
             return;

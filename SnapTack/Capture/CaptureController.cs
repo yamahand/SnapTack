@@ -36,14 +36,32 @@ public sealed class CaptureController
             return;
         }
 
-        // ホットキー押下の瞬間に画面全体をフリーズさせる (SPEC 4.2)
-        var screenshot = _capturer.CapturePrimaryScreen();
+        // ホットキー押下の瞬間に全モニタをフリーズさせる (SPEC 4.2 / SPEC-v1.x 2.4)。
+        // オーバーレイ生成前にすべてキャプチャし、途中失敗時は何も表示せず例外を伝播させる
+        var monitors = _capturer.EnumerateMonitors();
+        var screenshots = monitors.Select(m => (Monitor: m, Screenshot: _capturer.CaptureMonitor(m))).ToList();
 
         IsActive = true;
-        var overlay = new OverlayWindow(screenshot);
-        overlay.Closed += OnOverlayClosed;
-        _overlays.Add(overlay);
-        overlay.Show();
+        OverlayWindow? cursorOverlay = null;
+        var cursorPosition = System.Windows.Forms.Cursor.Position; // 物理px (仮想スクリーン座標)
+        foreach (var (monitor, screenshot) in screenshots)
+        {
+            var overlay = new OverlayWindow(screenshot, monitor);
+            overlay.Closed += OnOverlayClosed;
+            _overlays.Add(overlay);
+            var b = monitor.PhysicalBounds;
+            if (cursorPosition.X >= b.X && cursorPosition.X < b.X + b.Width &&
+                cursorPosition.Y >= b.Y && cursorPosition.Y < b.Y + b.Height)
+            {
+                cursorOverlay = overlay;
+            }
+        }
+        foreach (var overlay in _overlays)
+        {
+            overlay.Show();
+        }
+        // Esc を受け取れるよう、カーソルのあるモニタのオーバーレイへフォーカスを与える
+        (cursorOverlay ?? _overlays[0]).Activate();
     }
 
     /// <summary>

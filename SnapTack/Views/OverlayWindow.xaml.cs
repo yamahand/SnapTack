@@ -1,14 +1,18 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using SnapTack.Capture;
+using SnapTack.Interop;
 
 namespace SnapTack.Views;
 
 /// <summary>
-/// 範囲選択オーバーレイ。
-/// フリーズ画像を全画面に表示し、左ドラッグで選択・確定、Esc / 右クリックでキャンセルする。
-/// ShowDialog() 後に <see cref="ResultImage"/> を参照する(キャンセル時は null)。
+/// 範囲選択オーバーレイ。1つのモニタ全面を覆う (モニタごとに1枚生成される)。
+/// フリーズ画像を表示し、左ドラッグで選択・確定、Esc / 右クリックでキャンセルする。
+/// Closed 後に <see cref="ResultImage"/> を参照する(キャンセル時は null)。
 /// </summary>
 public partial class OverlayWindow : Window
 {
@@ -22,20 +26,41 @@ public partial class OverlayWindow : Window
     private const double LabelMargin = 4.0;
 
     private readonly BitmapSource _screenshot; // 物理ピクセル
+    private readonly MonitorInfo _monitor;     // このオーバーレイが覆うモニタ
     private Point _dragStartDip;
     private bool _dragging;
 
     /// <summary>確定した選択範囲の画像 (Freeze 済み)。キャンセル時は null。</summary>
     public BitmapSource? ResultImage { get; private set; }
 
-    /// <summary>確定した選択範囲 (物理ピクセル、プライマリモニタ左上原点)。</summary>
+    /// <summary>確定した選択範囲 (物理ピクセル、仮想スクリーン座標)。</summary>
     public Int32Rect ResultPhysicalRect { get; private set; }
 
-    public OverlayWindow(BitmapSource screenshot)
+    public OverlayWindow(BitmapSource screenshot, MonitorInfo monitor)
     {
         InitializeComponent();
         _screenshot = screenshot;
+        _monitor = monitor;
         FrozenImage.Source = screenshot;
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+
+        // 混在 DPI 環境でも正確にモニタ全面を覆うため、物理座標で直接配置する
+        var hwnd = new WindowInteropHelper(this).Handle;
+        var bounds = _monitor.PhysicalBounds;
+        User32.SetWindowPos(hwnd, IntPtr.Zero, bounds.X, bounds.Y, bounds.Width, bounds.Height,
+            User32.SWP_NOZORDER | User32.SWP_NOACTIVATE);
+
+        // 配置で確定したモニタ DPI に合わせて DIP サイズを固定し、
+        // WM_DPICHANGED による WPF 側の再配置で位置がずれないよう再固定する
+        var dpi = VisualTreeHelper.GetDpi(this);
+        Width = bounds.Width / dpi.DpiScaleX;
+        Height = bounds.Height / dpi.DpiScaleY;
+        User32.SetWindowPos(hwnd, IntPtr.Zero, bounds.X, bounds.Y, 0, 0,
+            User32.SWP_NOZORDER | User32.SWP_NOACTIVATE | User32.SWP_NOSIZE);
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -43,6 +68,15 @@ public partial class OverlayWindow : Window
         // Esc を受け取れるように前面化してフォーカスを取る
         Activate();
         Focus();
+    }
+
+    private void OnMouseEnter(object sender, MouseEventArgs e)
+    {
+        // マウスのあるモニタのオーバーレイが Esc を受け取れるよう、フォーカスを追従させる
+        if (!IsActive)
+        {
+            Activate();
+        }
     }
 
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
@@ -92,20 +126,26 @@ public partial class OverlayWindow : Window
         _dragging = false;
         ReleaseMouseCapture();
 
-        // DIP → 物理ピクセルへ変換して切り出す
-        var physicalRect = ToPhysicalRect(new Rect(_dragStartDip, e.GetPosition(this)));
-        physicalRect = ClampToScreenshot(physicalRect);
-        if (physicalRect.Width < MinSelectionPhysicalPx || physicalRect.Height < MinSelectionPhysicalPx)
+        // DIP → 物理ピクセルへ変換して切り出す。
+        // カーソルが他モニタへ出た場合も ClampToScreenshot でこのモニタの端にクリップされる (SPEC-v1.x 2.4)
+        var localRect = ToPhysicalRect(new Rect(_dragStartDip, e.GetPosition(this)));
+        localRect = ClampToScreenshot(localRect);
+        if (localRect.Width < MinSelectionPhysicalPx || localRect.Height < MinSelectionPhysicalPx)
         {
             // 誤クリック扱い
             Cancel();
             return;
         }
 
-        var cropped = new CroppedBitmap(_screenshot, physicalRect);
+        var cropped = new CroppedBitmap(_screenshot, localRect);
         cropped.Freeze(); // 付箋ウィンドウ等へ渡すため
         ResultImage = cropped;
-        ResultPhysicalRect = physicalRect;
+        // モニタ内ローカル座標 → 仮想スクリーン座標
+        ResultPhysicalRect = new Int32Rect(
+            _monitor.PhysicalBounds.X + localRect.X,
+            _monitor.PhysicalBounds.Y + localRect.Y,
+            localRect.Width,
+            localRect.Height);
         Close();
     }
 
