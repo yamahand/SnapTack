@@ -26,9 +26,8 @@ public partial class App : Application
     private const string MutexName = "SnapTack_SingleInstanceMutex";
 
     private readonly IScreenCapturer _screenCapturer = new GdiScreenCapturer();
-    private readonly SettingsStore _settingsStore = new();
+    private readonly SettingsService _settings = new(new SettingsStore());
 
-    private AppSettings _settings = new();
     private Mutex? _mutex;
     private TrayIcon? _trayIcon;
     private GlobalHotkey? _hotkey;
@@ -49,9 +48,7 @@ public partial class App : Application
 
         base.OnStartup(e);
 
-        _settings = _settingsStore.Load();
-
-        _trayIcon = new TrayIcon(_settings.GetHotkeyDisplayText());
+        _trayIcon = new TrayIcon(_settings.Current.GetHotkeyDisplayText());
         _trayIcon.CaptureRequested += OnCaptureRequested;
         _trayIcon.SettingsRequested += OnSettingsRequested;
         _trayIcon.ExitRequested += (_, _) => Shutdown();
@@ -86,10 +83,10 @@ public partial class App : Application
         {
             return;
         }
-        if (!_hotkey.Register(_settings.HotkeyModifiers, _settings.HotkeyKey))
+        if (!_hotkey.Register(_settings.Current.HotkeyModifiers, _settings.Current.HotkeyKey))
         {
             MessageBox.Show(
-                string.Format(HotkeyRegisterFailedFormat, _settings.GetHotkeyDisplayText()),
+                string.Format(HotkeyRegisterFailedFormat, _settings.Current.GetHotkeyDisplayText()),
                 AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
@@ -131,7 +128,7 @@ public partial class App : Application
         if (overlay.ResultImage is { } image)
         {
             // 付箋は自己完結させ、App 側で参照は保持しない (全部閉じても OnExplicitShutdown なので継続する)
-            new ScrapWindow(image, overlay.ResultPhysicalRect).Show();
+            new ScrapWindow(image, overlay.ResultPhysicalRect, _settings).Show();
         }
     }
 
@@ -146,19 +143,18 @@ public partial class App : Application
         // 設定中は現在のホットキーを解除し、同じ組み合わせも入力欄で押せるようにする
         _hotkey?.Unregister();
 
-        var window = new SettingsWindow(_settings);
+        var window = new SettingsWindow(_settings.Current);
         _settingsWindow = window;
         window.Closed += (_, _) =>
         {
             _settingsWindow = null;
             if (window.Result is { } newSettings)
             {
-                _settings = newSettings;
-                if (!_settingsStore.Save(_settings))
+                if (!_settings.Replace(newSettings))
                 {
                     MessageBox.Show(SettingsSaveFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
-                _trayIcon?.UpdateHotkeyText(_settings.GetHotkeyDisplayText());
+                _trayIcon?.UpdateHotkeyText(_settings.Current.GetHotkeyDisplayText());
             }
             // 保存・キャンセルどちらでも、現在の設定で即時再登録する
             RegisterHotkeyOrWarn();

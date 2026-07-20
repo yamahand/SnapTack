@@ -18,6 +18,7 @@ public partial class SettingsWindow : Window
     private const string CancelButtonText = "キャンセル";
     private const string ModifierRequiredMessage = "修飾キー (Ctrl / Shift / Alt / Win) を1つ以上含めてください。";
 
+    private readonly AppSettings _current;
     private ModifierKeys _modifiers;
     private Key _key;
 
@@ -27,6 +28,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow(AppSettings current)
     {
         InitializeComponent();
+        _current = current;
 
         Title = WindowTitle;
         HotkeyLabel.Text = HotkeyLabelText;
@@ -89,11 +91,11 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        Result = new AppSettings
-        {
-            HotkeyModifiers = _modifiers,
-            HotkeyKey = _key,
-        };
+        // 画面にない設定項目 (LastSaveDirectory 等) を落とさないよう、現在値のコピーへ上書きする
+        var result = _current.Clone();
+        result.HotkeyModifiers = _modifiers;
+        result.HotkeyKey = _key;
+        Result = result;
         Close();
     }
 

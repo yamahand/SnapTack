@@ -7,11 +7,11 @@ MILESTONES.md (M1〜M6) の続き。詳細仕様は SPEC-v1.x.md を参照。
 
 **ゴール: 付箋を PNG ファイルとして保存できる**
 
-- [ ] コンテキストメニューに「PNGで保存...」追加 (`Ctrl+S`)
-- [ ] SaveFileDialog(デフォルト名 `SnapTack_yyyyMMdd_HHmmss.png`)
-- [ ] PngBitmapEncoder で物理ピクセル等倍保存
-- [ ] 前回保存フォルダを設定ファイル(`LastSaveDirectory`)に記憶、初回は「ピクチャ」
-- [ ] 保存失敗時のエラー処理(付箋は維持)
+- [x] コンテキストメニューに「PNGで保存...」追加 (`Ctrl+S`)
+- [x] SaveFileDialog(デフォルト名 `SnapTack_yyyyMMdd_HHmmss.png`)
+- [x] PngBitmapEncoder で物理ピクセル等倍保存
+- [x] 前回保存フォルダを設定ファイル(`LastSaveDirectory`)に記憶、初回は「ピクチャ」
+- [x] 保存失敗時のエラー処理(付箋は維持)
 
 **確認**: 保存した PNG のピクセルサイズが選択時のサイズ表示と一致する
 
