@@ -57,6 +57,13 @@ public sealed class GlobalHotkey : IDisposable
 
         Unregister();
 
+        // 設定ファイルの破損・手編集などで無効な組み合わせが流入しても登録しない
+        // (修飾キーなしや修飾キー単体の登録は、通常のキー入力をグローバルに乗っ取ってしまう)
+        if (modifiers == ModifierKeys.None || !IsValidHotkeyKey(key))
+        {
+            return false;
+        }
+
         // キーを押しっぱなしにしても連続発火させない
         uint fsModifiers = MOD_NOREPEAT;
         if (modifiers.HasFlag(ModifierKeys.Alt)) fsModifiers |= MOD_ALT;
@@ -65,9 +72,21 @@ public sealed class GlobalHotkey : IDisposable
         if (modifiers.HasFlag(ModifierKeys.Windows)) fsModifiers |= MOD_WIN;
 
         uint vk = (uint)KeyInterop.VirtualKeyFromKey(key);
+        if (vk == 0)
+        {
+            return false;
+        }
         _registered = RegisterHotKey(_source.Handle, HotkeyId, fsModifiers, vk);
         return _registered;
     }
+
+    /// <summary>ホットキーの本体キーとして有効か (修飾キー・特殊マーカーは不可)。</summary>
+    private static bool IsValidHotkeyKey(Key key) =>
+        key is not (Key.None or Key.System or Key.ImeProcessed or Key.DeadCharProcessed
+            or Key.LeftCtrl or Key.RightCtrl
+            or Key.LeftShift or Key.RightShift
+            or Key.LeftAlt or Key.RightAlt
+            or Key.LWin or Key.RWin);
 
     /// <summary>登録を解除する。未登録なら何もしない。</summary>
     public void Unregister()

@@ -97,6 +97,12 @@ public partial class SettingsWindow : Window
         Close();
     }
 
+    private void OnCancelClick(object sender, RoutedEventArgs e)
+    {
+        // モードレス表示 (Show) では IsCancel だけでは閉じないため明示的に Close する
+        Close();
+    }
+
     private void UpdateHotkeyBoxText()
     {
         HotkeyBox.Text = AppSettings.FormatHotkey(_modifiers, _key);
