@@ -32,6 +32,12 @@ public partial class ScrapWindow : Window
     private const string SaveFileFilter = "PNG 画像 (*.png)|*.png";
     private const string MenuOpacityText = "不透明度";
     private const string OpacityPresetFormat = "{0}%";
+    private const string MenuDiceText = "サイコロ化";
+    private const string MenuRestoreText = "元に戻す";
+    private const string MenuDiceGestureText = "ダブルクリック";
+
+    // サイコロ (最小化タイル) のサイズ (SPEC-v1.x 2.3)
+    private const double DiceSizeDip = 48.0;
 
     // 不透明度の範囲・ステップ (SPEC-v1.x 2.2)
     private const int OpacityMinPercent = 20;
@@ -45,6 +51,8 @@ public partial class ScrapWindow : Window
     private readonly List<MenuItem> _opacityPresetItems = [];
 
     private int _opacityPercent = OpacityMaxPercent; // 新規付箋は常に 100% (SPEC-v1.x 2.2)
+    private bool _isDice;
+    private MenuItem? _diceMenuItem;
 
     public ScrapWindow(BitmapSource image, Int32Rect physicalRect, SettingsService settings)
     {
@@ -53,6 +61,7 @@ public partial class ScrapWindow : Window
         _physicalRect = physicalRect;
         _settings = settings;
         ScrapImage.Source = image;
+        DiceBrush.ImageSource = image;
         ContextMenu = BuildContextMenu();
         SetOpacityPercent(_opacityPercent);
     }
@@ -88,6 +97,10 @@ public partial class ScrapWindow : Window
             opacityItem.Items.Add(presetItem);
         }
 
+        // サイコロ化 ⇔ 元に戻す (状態に応じて表記切替、SPEC-v1.x 2.3)
+        _diceMenuItem = new MenuItem { Header = MenuDiceText, InputGestureText = MenuDiceGestureText };
+        _diceMenuItem.Click += (_, _) => ToggleDice();
+
         var closeItem = new MenuItem { Header = MenuCloseText, InputGestureText = MenuCloseGestureText };
         closeItem.Click += (_, _) => Close();
 
@@ -95,6 +108,7 @@ public partial class ScrapWindow : Window
         menu.Items.Add(copyItem);
         menu.Items.Add(savePngItem);
         menu.Items.Add(opacityItem);
+        menu.Items.Add(_diceMenuItem);
         menu.Items.Add(new Separator());
         menu.Items.Add(closeItem);
         return menu;
@@ -132,7 +146,60 @@ public partial class ScrapWindow : Window
 
     private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        // ダブルクリック判定はシステムのダブルクリック距離内に限られるため、
+        // ドラッグ移動後のクリックは ClickCount=1 に戻り、移動と干渉しない (SPEC-v1.x 4)
+        if (e.ClickCount == 2)
+        {
+            ToggleDice();
+            return;
+        }
         DragMove();
+    }
+
+    /// <summary>サイコロ (48×48 DIP タイル) ⇔ 元サイズをトグルする (SPEC-v1.x 2.3)。</summary>
+    private void ToggleDice()
+    {
+        _isDice = !_isDice;
+        if (_isDice)
+        {
+            // 左上位置は維持したままタイル化する
+            ScrapImage.Visibility = Visibility.Collapsed;
+            DiceThumb.Visibility = Visibility.Visible;
+            Width = DiceSizeDip;
+            Height = DiceSizeDip;
+        }
+        else
+        {
+            ScrapImage.Visibility = Visibility.Visible;
+            DiceThumb.Visibility = Visibility.Collapsed;
+            // 現在のモニタ DPI で物理ピクセル等倍になるサイズへ戻す
+            var dpi = VisualTreeHelper.GetDpi(this);
+            Width = _physicalRect.Width / dpi.DpiScaleX;
+            Height = _physicalRect.Height / dpi.DpiScaleY;
+            ClampIntoCurrentMonitor();
+        }
+        if (_diceMenuItem is not null)
+        {
+            _diceMenuItem.Header = _isDice ? MenuRestoreText : MenuDiceText;
+        }
+    }
+
+    /// <summary>付箋が画面外へはみ出す場合、表示中のモニタ内に収まるよう位置をクランプする (SPEC-v1.x 2.3)。</summary>
+    private void ClampIntoCurrentMonitor()
+    {
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+        var bounds = System.Windows.Forms.Screen.FromHandle(hwnd).Bounds; // 物理px
+        var dpi = VisualTreeHelper.GetDpi(this);
+        double monitorLeft = bounds.X / dpi.DpiScaleX;
+        double monitorTop = bounds.Y / dpi.DpiScaleY;
+        double monitorRight = (bounds.X + bounds.Width) / dpi.DpiScaleX;
+        double monitorBottom = (bounds.Y + bounds.Height) / dpi.DpiScaleY;
+        Left = Math.Max(monitorLeft, Math.Min(Left, monitorRight - Width));
+        Top = Math.Max(monitorTop, Math.Min(Top, monitorBottom - Height));
     }
 
     private void OnMouseDown(object sender, MouseButtonEventArgs e)

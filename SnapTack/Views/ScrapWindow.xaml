@@ -17,6 +17,12 @@
         <Image x:Name="ScrapImage"
                Stretch="Fill"
                RenderOptions.BitmapScalingMode="NearestNeighbor" />
+        <!-- サイコロ状態のサムネイル。UniformToFill (AlignmentX/Y=Center) で中央クロップになる -->
+        <Rectangle x:Name="DiceThumb" Visibility="Collapsed">
+            <Rectangle.Fill>
+                <ImageBrush x:Name="DiceBrush" Stretch="UniformToFill" />
+            </Rectangle.Fill>
+        </Rectangle>
         <!-- 枠線 1px (グレー系)。サイズに含めず画像の縁に重ねることで、元の画面位置とピッタリ重なる -->
         <Rectangle Stroke="#FF808080"
                    StrokeThickness="1"
