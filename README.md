@@ -1,80 +1,82 @@
 # SnapTack
 
-画面の任意の範囲をキャプチャして、そのまま「付箋」として画面に貼っておける Windows 用常駐ツールです。
-SETUNA2(開発終了したフリーソフト)の後継を目指しています。
+**English** | [日本語](README.ja.md)
 
-資料の一部・エラーメッセージ・参考画像などを一瞬で切り取って画面に貼り、見比べたり他アプリへコピーしたりできます。
+A Windows tray utility that captures any region of your screen and pins it to the desktop as a sticky note.
+It aims to be a successor to SETUNA2, a freeware tool that is no longer developed.
 
-![スクリーンショット](docs/images/screenshot.png)
+Clip part of a document, an error message, or a reference image in an instant, pin it to your screen, and keep it there to compare against or copy into another app.
 
-## 特徴
+![Screenshot](docs/images/screenshot.png)
 
-- **Ctrl+Shift+Z** で画面がその瞬間の映像でフリーズ → ドラッグで範囲選択 → 選択範囲がその場に「付箋」として残る
-- 付箋は常に最前面。ドラッグで移動、`Ctrl+C` でコピー、`Ctrl+S` で PNG 保存、中クリックで閉じる
-- ホイールで不透明度を変更、ダブルクリックで小さなタイル (サイコロ) に畳んで場所を節約
-- マルチディスプレイ対応。キャプチャは物理ピクセル等倍で、125% / 150% などの DPI スケーリングが混在していても位置ズレしない (Per-Monitor V2 対応)
-- タスクトレイ常駐。ホットキーは設定画面から変更可能
-- ポータブル運用可能 (設定は exe と同じフォルダの `settings.json` に保存。書き込めない場合は `%APPDATA%\SnapTack`)
+## Features
 
-## 動作環境
+- Press **Ctrl+Shift+Z** to freeze the screen, drag to select a region, and the selection stays on your desktop as a sticky note
+- Notes are always on top. Drag to move, `Ctrl+C` to copy, `Ctrl+S` to save as PNG, middle-click to close
+- Scroll the mouse wheel to change opacity, double-click to fold a note into a small tile to save space
+- Multi-monitor support. Captures at 1:1 physical pixels, with no positional drift even across mixed DPI scaling such as 125% / 150% (Per-Monitor V2 aware)
+- Lives in the system tray. The hotkey can be changed from the settings window
+- Runs portably — settings are saved to `settings.json` next to the executable, falling back to `%APPDATA%\SnapTack` if that location isn't writable
+
+## Requirements
 
 - Windows 10 / 11 (x64)
 
-## インストール
+## Installation
 
-### ポータブル版
+### Portable
 
-[Releases](../../releases) から zip をダウンロードし、好きな場所に展開して `SnapTack.exe` を起動するだけです。zip は 2 種類あります。
+Download a zip from [Releases](../../releases), extract it anywhere, and run `SnapTack.exe`. Two builds are available:
 
-| ファイル | 内容 |
+| File | Description |
 |---|---|
-| `SnapTack-vX.X.X-portable-win-x64.zip` | **ランタイム同梱版。迷ったらこちら。** .NET が入っていない環境でもそのまま動きます (その分サイズが大きめです) |
-| `SnapTack-vX.X.X-portable-win-x64-fd.zip` | 軽量版。別途 [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) のインストールが必要です |
+| `SnapTack-vX.X.X-portable-win-x64.zip` | **Runtime included. Pick this one if you're unsure.** Runs as-is even without .NET installed (larger download) |
+| `SnapTack-vX.X.X-portable-win-x64-fd.zip` | Lightweight build. Requires [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) to be installed separately |
 
-### インストーラー版
+### Installer
 
-1. [Releases](../../releases) から `SnapTack-vX.X.X-setup.exe` をダウンロードして実行
+Download `SnapTack-vX.X.X-setup.exe` from [Releases](../../releases) and run it.
 
-## 使い方
+## Usage
 
-| 操作 | 動作 |
+| Action | Result |
 |---|---|
-| `Ctrl+Shift+Z` (変更可) / トレイアイコンのダブルクリック | キャプチャ開始 |
-| 左ドラッグ | 範囲選択 (離すと確定し、その場に付箋が残る) |
-| `Esc` / 右クリック | キャプチャのキャンセル |
+| `Ctrl+Shift+Z` (configurable) / double-click the tray icon | Start a capture |
+| Left-drag | Select a region (releasing confirms it and leaves a note in place) |
+| `Esc` / right-click | Cancel the capture |
 
-### 付箋の操作
+### Working with notes
 
-| 操作 | 動作 |
+| Action | Result |
 |---|---|
-| 左ドラッグ | 移動 |
-| `Ctrl+C` | 画像をクリップボードへコピー |
-| `Ctrl+S` | PNG ファイルとして保存 |
-| ホイール | 不透明度の変更 (20〜100%) |
-| ダブルクリック | サイコロ化 (小さなタイルに畳む) / 元に戻す |
-| 中クリック | 閉じる |
-| 右クリック | メニュー (コピー / PNG 保存 / 不透明度 / サイコロ化 / 閉じる) |
+| Left-drag | Move |
+| `Ctrl+C` | Copy the image to the clipboard |
+| `Ctrl+S` | Save as a PNG file |
+| Mouse wheel | Change opacity (20–100%) |
+| Double-click | Fold into a tile / restore |
+| Middle-click | Close |
+| Right-click | Menu (copy / save as PNG / opacity / fold / close) |
 
-付箋は何枚でも同時に貼れます。全部閉じてもアプリはトレイに常駐し続けます。終了はトレイメニューの「終了」から。
+You can pin as many notes as you like at once. Closing them all leaves the app running in the tray — quit from the tray menu's "終了" (Exit).
 
-## ビルド方法
+## Building
 
-.NET 10 SDK が必要です。
+Requires the .NET 10 SDK.
 
 ```powershell
 dotnet build SnapTack.slnx
 
-# ポータブル版 (single-file) の作成
-# ランタイム同梱版と軽量版の zip が artifacts/ に 2 つ出力される
+# Build the portable releases (single-file)
+# Outputs two zips to artifacts/: runtime-included and lightweight
 pwsh scripts/publish.ps1
 
-# インストーラーの作成 (Inno Setup 6 が必要。publish 実行後に)
-# artifacts/publish (ランタイム同梱版) の exe を取り込む
+# Build the installer (requires Inno Setup 6; run after publish)
+# Picks up the executable from artifacts/publish (the runtime-included build)
 iscc installer\SnapTack.iss
 ```
 
-## ライセンス
+## License
 
 [MIT License](LICENSE)
 
-SETUNA2 にインスパイアされた独立実装であり、オリジナルのコードは含みません。
+An independent implementation inspired by SETUNA2; it contains none of the original code.
