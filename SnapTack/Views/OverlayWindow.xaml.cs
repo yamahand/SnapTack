@@ -77,8 +77,9 @@ public partial class OverlayWindow : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        // Esc を受け取れるように前面化してフォーカスを取る
-        Activate();
+        // 初期のアクティブ化 (どのモニタのオーバーレイをフォーカスするか) は CaptureController が
+        // 全オーバーレイ表示後に一元的に行う。ここで Activate() すると Loaded の発火順によって
+        // 別モニタのオーバーレイがフォーカスを奪い得るため、キーボードフォーカスの取得だけ行う
         Focus();
     }
 
