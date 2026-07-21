@@ -55,7 +55,20 @@ jobs:
       - name: Build installer
         shell: pwsh
         run: |
-          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          # choco 版はマシン全体 (Program Files) へ入るが、インストーラの仕様変更で
+          # 位置が変わっても切り分けできるよう、候補を順に探して明示的に失敗させる
+          $candidates = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+            "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+            "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
+          )
+          $iscc = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) {
+            Write-Host "::error::ISCC.exe が見つかりません。探索したパス:"
+            $candidates | ForEach-Object { Write-Host "::error::  $_" }
+            exit 1
+          }
+          Write-Host "ISCC: $iscc"
           & $iscc "/DMyAppVersion=${{ steps.ver.outputs.version }}" installer\SnapTack.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

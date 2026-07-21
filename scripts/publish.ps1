@@ -14,7 +14,8 @@ $csproj = Join-Path $repoRoot "SnapTack\SnapTack.csproj"
 # -Version 省略時は props の値を読み取る。zip 名にバージョンを含めるため、
 # ビルドへ渡さない場合でも実際の値を知る必要がある
 if ([string]::IsNullOrWhiteSpace($Version)) {
-    $Version = (dotnet msbuild $csproj -getProperty:Version | Out-String).Trim()
+    # -nologo / -verbosity:quiet がないと環境によってロゴ等が混ざり、値が汚れる
+    $Version = (dotnet msbuild $csproj -getProperty:Version -nologo -verbosity:quiet | Out-String).Trim()
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($Version)) {
         throw "Directory.Build.props からバージョンを取得できませんでした"
     }
