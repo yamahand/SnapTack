@@ -19,6 +19,13 @@ public static class RectMath
     public static Int32Rect ToPhysicalRect(
         Rect dipRect, double actualWidth, double actualHeight, int pixelWidth, int pixelHeight)
     {
+        // 0 以下だと除算で Infinity / NaN となり、int キャスト時に分かりにくい例外になるため
+        // ここで弾く (ウィンドウ表示前に呼ばれた場合など)
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(actualWidth, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(actualHeight, 0);
+        ArgumentOutOfRangeException.ThrowIfNegative(pixelWidth);
+        ArgumentOutOfRangeException.ThrowIfNegative(pixelHeight);
+
         // フリーズ画像はウィンドウ全面に Stretch=Fill で表示しているため、
         // ウィンドウ全体 (DIP) → 画像全体 (物理px) の比率で変換する。
         // オーバーレイが画面全体を覆っているとき、この比率は DPI スケールと一致する。
@@ -39,6 +46,10 @@ public static class RectMath
     /// <param name="pixelHeight">スクリーンショットの高さ (物理px)。</param>
     public static Int32Rect ClampToScreenshot(Int32Rect rect, int pixelWidth, int pixelHeight)
     {
+        // 負だと Math.Clamp が max < min で例外になるため、意図を明示して弾く
+        ArgumentOutOfRangeException.ThrowIfNegative(pixelWidth);
+        ArgumentOutOfRangeException.ThrowIfNegative(pixelHeight);
+
         int x = Math.Clamp(rect.X, 0, pixelWidth);
         int y = Math.Clamp(rect.Y, 0, pixelHeight);
         int right = Math.Clamp(rect.X + rect.Width, x, pixelWidth);

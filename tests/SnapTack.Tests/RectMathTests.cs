@@ -58,6 +58,24 @@ public class RectMathTests
         Assert.Equal(0, result.Height);
     }
 
+    [Theory]
+    [InlineData(0, 720)]
+    [InlineData(1280, 0)]
+    [InlineData(-1, 720)]
+    public void ウィンドウサイズが0以下なら例外になる(double width, double height)
+    {
+        // 表示前などに呼ばれた場合、除算で NaN になる前に弾く
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            RectMath.ToPhysicalRect(new Rect(0, 0, 10, 10), width, height, Pixel100W, Pixel100H));
+    }
+
+    [Fact]
+    public void クランプで画像サイズが負なら例外になる()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            RectMath.ClampToScreenshot(new Int32Rect(0, 0, 10, 10), -1, Pixel100H));
+    }
+
     [Fact]
     public void クランプは範囲内の矩形を変更しない()
     {

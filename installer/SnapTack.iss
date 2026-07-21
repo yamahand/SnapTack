@@ -3,9 +3,15 @@
 ; コンパイル: iscc installer\SnapTack.iss
 
 #define MyAppName "SnapTack"
-; CI からは iscc /DMyAppVersion=1.4.0 で上書きされる。ここの値はローカルコンパイル時の既定値
+#define MyAppExeSource "..\artifacts\publish\SnapTack.exe"
+; CI からは iscc /DMyAppVersion=1.4.0 で上書きされる。
+; 省略時は publish 済み exe から取得する (exe のバージョンは Directory.Build.props が元)。
+; ここに数値を直書きすると props の更新時に取り残されるため書かないこと
 #ifndef MyAppVersion
-  #define MyAppVersion "1.3.0"
+  ; GetVersionNumbersString は 4 桁 (1.3.0.0) を返すため、末尾の .0 を落として
+  ; CI が渡す 3 桁 (1.3.0) と表記を揃える
+  #define MyAppFileVersion GetVersionNumbersString(AddBackslash(SourcePath) + MyAppExeSource)
+  #define MyAppVersion Copy(MyAppFileVersion, 1, RPos(".", MyAppFileVersion) - 1)
 #endif
 #define MyAppPublisher "yamahand"
 #define MyAppURL "https://github.com/yamahand/SnapTack"
@@ -42,7 +48,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "startup"; Description: "Windows 起動時に {#MyAppName} を自動起動する"; GroupDescription: "追加オプション:"; Flags: unchecked
 
 [Files]
-Source: "..\artifacts\publish\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#MyAppExeSource}"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

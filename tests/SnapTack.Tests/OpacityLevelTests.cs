@@ -82,6 +82,15 @@ public class OpacityLevelTests
     }
 
     [Theory]
+    [InlineData(0)]   // Math.Sign が 0 を返すケース (ホイールが 1 ノッチ未満)
+    [InlineData(2)]
+    [InlineData(-2)]
+    public void 想定外のdirectionは例外になる(int direction)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => OpacityLevel.Next(50, direction));
+    }
+
+    [Theory]
     [InlineData(100)]
     [InlineData(75)]
     [InlineData(50)]
