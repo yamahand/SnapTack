@@ -208,29 +208,11 @@ public partial class OverlayWindow : Window
     }
 
     /// <summary>DIP の矩形をスクリーンショットの物理ピクセル矩形へ変換する。</summary>
-    private Int32Rect ToPhysicalRect(Rect dipRect)
-    {
-        // フリーズ画像はウィンドウ全面に Stretch=Fill で表示しているため、
-        // ウィンドウ全体 (DIP) → 画像全体 (物理px) の比率で変換する。
-        // オーバーレイが画面全体を覆っているとき、この比率は DPI スケールと一致する。
-        // 万一ウィンドウサイズが画面と一致しない場合でも、見た目どおりの範囲が切り出される
-        double scaleX = _screenshot.PixelWidth / ActualWidth;
-        double scaleY = _screenshot.PixelHeight / ActualHeight;
-        // DIP → 物理px (端は四捨五入)
-        int x = (int)Math.Round(dipRect.X * scaleX);
-        int y = (int)Math.Round(dipRect.Y * scaleY);
-        int right = (int)Math.Round(dipRect.Right * scaleX);
-        int bottom = (int)Math.Round(dipRect.Bottom * scaleY);
-        return new Int32Rect(x, y, Math.Max(0, right - x), Math.Max(0, bottom - y));
-    }
+    private Int32Rect ToPhysicalRect(Rect dipRect) =>
+        RectMath.ToPhysicalRect(
+            dipRect, ActualWidth, ActualHeight, _screenshot.PixelWidth, _screenshot.PixelHeight);
 
     /// <summary>矩形をスクリーンショットの範囲内 (物理px) に収める。</summary>
-    private Int32Rect ClampToScreenshot(Int32Rect rect)
-    {
-        int x = Math.Clamp(rect.X, 0, _screenshot.PixelWidth);
-        int y = Math.Clamp(rect.Y, 0, _screenshot.PixelHeight);
-        int right = Math.Clamp(rect.X + rect.Width, x, _screenshot.PixelWidth);
-        int bottom = Math.Clamp(rect.Y + rect.Height, y, _screenshot.PixelHeight);
-        return new Int32Rect(x, y, right - x, bottom - y);
-    }
+    private Int32Rect ClampToScreenshot(Int32Rect rect) =>
+        RectMath.ClampToScreenshot(rect, _screenshot.PixelWidth, _screenshot.PixelHeight);
 }

@@ -3,7 +3,10 @@
 ; コンパイル: iscc installer\SnapTack.iss
 
 #define MyAppName "SnapTack"
-#define MyAppVersion "1.3.0"
+; CI からは iscc /DMyAppVersion=1.4.0 で上書きされる。ここの値はローカルコンパイル時の既定値
+#ifndef MyAppVersion
+  #define MyAppVersion "1.3.0"
+#endif
 #define MyAppPublisher "yamahand"
 #define MyAppURL "https://github.com/yamahand/SnapTack"
 #define MyAppExeName "SnapTack.exe"

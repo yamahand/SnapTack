@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="SnapTack/SnapTack.csproj" />
+  <Project Path="tests/SnapTack.Tests/SnapTack.Tests.csproj" />
 </Solution>
