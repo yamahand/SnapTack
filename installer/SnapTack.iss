@@ -3,7 +3,7 @@
 ; コンパイル: iscc installer\SnapTack.iss
 
 #define MyAppName "SnapTack"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.3.0"
 #define MyAppPublisher "yamahand"
 #define MyAppURL "https://github.com/yamahand/SnapTack"
 #define MyAppExeName "SnapTack.exe"
