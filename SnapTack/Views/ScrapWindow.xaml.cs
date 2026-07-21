@@ -163,13 +163,23 @@ public partial class ScrapWindow : Window
 
     private void OnMouseWheel(object sender, MouseWheelEventArgs e)
     {
-        SetOpacityPercent(NextOpacityPercent(_opacityPercent, e.Delta > 0 ? +1 : -1));
+        // 複数ノッチ入力 (Delta = ±240 等) はノッチ数ぶんステップを適用する。
+        // 1 ステップずつ進めることで、倍数へのスナップも各ステップで正しく効く
+        int notches = e.Delta / Mouse.MouseWheelDeltaForOneLine;
+        int direction = Math.Sign(notches);
+        int percent = _opacityPercent;
+        for (int i = 0; i < Math.Abs(notches); i++)
+        {
+            percent = NextOpacityPercent(percent, direction);
+        }
+        SetOpacityPercent(percent);
         e.Handled = true;
     }
 
     /// <summary>
     /// ホイール 1 ステップ後の不透明度を返す。
-    /// 10% の倍数以外 (プリセット 75% / 25% 適用後) は最初の 1 ステップを ±5% として倍数へスナップする (SPEC-v1.x 2.2)。
+    /// 現在値が 10% の倍数のときは ±10%。倍数でない (プリセット 75% / 25% 適用後) ときは
+    /// 直近の倍数へスナップする (75% / 25% の場合は結果的に ±5% になる、SPEC-v1.x 2.2)。
     /// </summary>
     private static int NextOpacityPercent(int current, int direction)
     {
