@@ -25,15 +25,13 @@ public partial class App : Application
     // 二重起動防止用の Mutex 名 (同一ユーザーセッション内で一意)
     private const string MutexName = "SnapTack_SingleInstanceMutex";
 
-    private readonly IScreenCapturer _screenCapturer = new GdiScreenCapturer();
-    private readonly SettingsStore _settingsStore = new();
+    private readonly SettingsService _settings = new(new SettingsStore());
+    private readonly CaptureController _capture = new(new GdiScreenCapturer());
 
-    private AppSettings _settings = new();
     private Mutex? _mutex;
     private TrayIcon? _trayIcon;
     private GlobalHotkey? _hotkey;
     private SettingsWindow? _settingsWindow;
-    private bool _capturing;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -49,9 +47,11 @@ public partial class App : Application
 
         base.OnStartup(e);
 
-        _settings = _settingsStore.Load();
+        // 付箋は自己完結させ、App 側で参照は保持しない (全部閉じても OnExplicitShutdown なので継続する)
+        _capture.SelectionCompleted += (image, physicalRect) =>
+            new ScrapWindow(image, physicalRect, _settings).Show();
 
-        _trayIcon = new TrayIcon(_settings.GetHotkeyDisplayText());
+        _trayIcon = new TrayIcon(_settings.Current.GetHotkeyDisplayText());
         _trayIcon.CaptureRequested += OnCaptureRequested;
         _trayIcon.SettingsRequested += OnSettingsRequested;
         _trayIcon.ExitRequested += (_, _) => Shutdown();
@@ -86,52 +86,24 @@ public partial class App : Application
         {
             return;
         }
-        if (!_hotkey.Register(_settings.HotkeyModifiers, _settings.HotkeyKey))
+        if (!_hotkey.Register(_settings.Current.HotkeyModifiers, _settings.Current.HotkeyKey))
         {
             MessageBox.Show(
-                string.Format(HotkeyRegisterFailedFormat, _settings.GetHotkeyDisplayText()),
+                string.Format(HotkeyRegisterFailedFormat, _settings.Current.GetHotkeyDisplayText()),
                 AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
     private void OnCaptureRequested(object? sender, EventArgs e)
     {
-        // オーバーレイ表示中の再キャプチャ要求は無視する (SPEC 4.3)
-        if (_capturing)
-        {
-            return;
-        }
-        _capturing = true;
+        // オーバーレイ表示中の再要求は CaptureController 側で無視される (SPEC 4.3)
         try
         {
-            StartCapture();
-        }
-        finally
-        {
-            _capturing = false;
-        }
-    }
-
-    private void StartCapture()
-    {
-        // ホットキー押下の瞬間に画面全体をフリーズさせる (SPEC 4.2)
-        System.Windows.Media.Imaging.BitmapSource screenshot;
-        try
-        {
-            screenshot = _screenCapturer.CapturePrimaryScreen();
+            _capture.Start();
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or ExternalException)
         {
             MessageBox.Show(CaptureFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        var overlay = new OverlayWindow(screenshot);
-        overlay.ShowDialog();
-        if (overlay.ResultImage is { } image)
-        {
-            // 付箋は自己完結させ、App 側で参照は保持しない (全部閉じても OnExplicitShutdown なので継続する)
-            new ScrapWindow(image, overlay.ResultPhysicalRect).Show();
         }
     }
 
@@ -146,19 +118,18 @@ public partial class App : Application
         // 設定中は現在のホットキーを解除し、同じ組み合わせも入力欄で押せるようにする
         _hotkey?.Unregister();
 
-        var window = new SettingsWindow(_settings);
+        var window = new SettingsWindow(_settings.Current);
         _settingsWindow = window;
         window.Closed += (_, _) =>
         {
             _settingsWindow = null;
             if (window.Result is { } newSettings)
             {
-                _settings = newSettings;
-                if (!_settingsStore.Save(_settings))
+                if (!_settings.Replace(newSettings))
                 {
                     MessageBox.Show(SettingsSaveFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
-                _trayIcon?.UpdateHotkeyText(_settings.GetHotkeyDisplayText());
+                _trayIcon?.UpdateHotkeyText(_settings.Current.GetHotkeyDisplayText());
             }
             // 保存・キャンセルどちらでも、現在の設定で即時再登録する
             RegisterHotkeyOrWarn();

@@ -9,11 +9,25 @@ namespace SnapTack.Capture;
 /// <summary>Graphics.CopyFromScreen による <see cref="IScreenCapturer"/> 実装。</summary>
 public sealed class GdiScreenCapturer : IScreenCapturer
 {
-    public BitmapSource CapturePrimaryScreen()
+    public IReadOnlyList<MonitorInfo> EnumerateMonitors()
     {
         // Per-Monitor V2 宣言済みプロセスのため Bounds は物理ピクセルで返る
-        var bounds = System.Windows.Forms.Screen.PrimaryScreen?.Bounds
-            ?? throw new InvalidOperationException("プライマリモニタが見つかりません。");
+        var screens = System.Windows.Forms.Screen.AllScreens;
+        if (screens.Length == 0)
+        {
+            throw new InvalidOperationException("モニタが見つかりません。");
+        }
+        return screens
+            .Select(s => new MonitorInfo(
+                s.DeviceName,
+                new Int32Rect(s.Bounds.X, s.Bounds.Y, s.Bounds.Width, s.Bounds.Height),
+                s.Primary))
+            .ToList();
+    }
+
+    public BitmapSource CaptureMonitor(MonitorInfo monitor)
+    {
+        var bounds = monitor.PhysicalBounds;
 
         using var bitmap = new Bitmap(bounds.Width, bounds.Height);
         using (var graphics = Graphics.FromImage(bitmap))

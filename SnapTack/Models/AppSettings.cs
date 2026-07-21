@@ -11,6 +11,18 @@ public class AppSettings
     /// <summary>キャプチャホットキーの本体キー。既定は Z。</summary>
     public Key HotkeyKey { get; set; } = Key.Z;
 
+    /// <summary>PNG 保存の前回フォルダ。未保存なら null で「ピクチャ」を使う (SPEC-v1.x 2.1)。</summary>
+    public string? LastSaveDirectory { get; set; }
+
+    /// <summary>
+    /// DPI の異なるモニタへ付箋を移動した際に物理ピクセル等倍を維持するか (SPEC-v1.x 2.4)。
+    /// 既定は false (WPF の既定動作 = DIP サイズ維持)。
+    /// </summary>
+    public bool KeepPhysicalPixelSize { get; set; }
+
+    /// <summary>浅いコピーを返す。設定画面が一部項目だけ書き換える際に使う。</summary>
+    public AppSettings Clone() => (AppSettings)MemberwiseClone();
+
     /// <summary>"Ctrl+Shift+Z" 形式の表示文字列を返す。</summary>
     public string GetHotkeyDisplayText() => FormatHotkey(HotkeyModifiers, HotkeyKey);
 

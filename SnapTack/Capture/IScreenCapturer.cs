@@ -9,8 +9,13 @@ namespace SnapTack.Capture;
 public interface IScreenCapturer
 {
     /// <summary>
-    /// プライマリモニタ全体を物理ピクセル解像度でキャプチャし、Freeze 済みの画像を返す。
+    /// 接続中の全モニタを列挙する。モニタが1つも見つからない場合は例外を投げる。
+    /// </summary>
+    IReadOnlyList<MonitorInfo> EnumerateMonitors();
+
+    /// <summary>
+    /// 指定モニタ全体を物理ピクセル解像度でキャプチャし、Freeze 済みの画像を返す。
     /// 失敗時は例外を投げる(呼び出し側で通知して継続する)。
     /// </summary>
-    BitmapSource CapturePrimaryScreen();
+    BitmapSource CaptureMonitor(MonitorInfo monitor);
 }
