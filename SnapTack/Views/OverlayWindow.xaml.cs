@@ -126,7 +126,9 @@ public partial class OverlayWindow : Window
     {
         if (_dragging)
         {
-            UpdateSelectionVisual(new Rect(_dragStartDip, e.GetPosition(this)));
+            // マウスキャプチャ中はカーソルが他モニタへ出ても座標が届くため、
+            // ウィンドウ内へクランプして見た目を確定結果と一致させる (SPEC-v1.x 2.4)
+            UpdateSelectionVisual(CurrentSelectionDipRect(e.GetPosition(this)));
         }
     }
 
@@ -139,9 +141,9 @@ public partial class OverlayWindow : Window
         _dragging = false;
         ReleaseMouseCapture();
 
-        // DIP → 物理ピクセルへ変換して切り出す。
-        // カーソルが他モニタへ出た場合も ClampToScreenshot でこのモニタの端にクリップされる (SPEC-v1.x 2.4)
-        var localRect = ToPhysicalRect(new Rect(_dragStartDip, e.GetPosition(this)));
+        // ドラッグ中と同じクランプ済み矩形から切り出す。ClampToScreenshot は
+        // 物理ピクセルへの丸め誤差でわずかに範囲外へ出た場合の保険 (SPEC-v1.x 2.4)
+        var localRect = ToPhysicalRect(CurrentSelectionDipRect(e.GetPosition(this)));
         localRect = ClampToScreenshot(localRect);
         if (localRect.Width < MinSelectionPhysicalPx || localRect.Height < MinSelectionPhysicalPx)
         {
@@ -166,6 +168,17 @@ public partial class OverlayWindow : Window
     {
         ResultImage = null;
         Close();
+    }
+
+    /// <summary>
+    /// ドラッグ開始点から現在のカーソル位置までの選択矩形 (DIP) を返す。
+    /// 現在位置はこのオーバーレイ (= 選択中モニタ) の範囲内へクランプする。
+    /// </summary>
+    private Rect CurrentSelectionDipRect(Point currentDip)
+    {
+        double x = Math.Clamp(currentDip.X, 0, ActualWidth);
+        double y = Math.Clamp(currentDip.Y, 0, ActualHeight);
+        return new Rect(_dragStartDip, new Point(x, y));
     }
 
     /// <summary>ドラッグ中の選択枠・くり抜き・サイズラベルを更新する。引数は DIP。</summary>
