@@ -41,11 +41,19 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
 [Languages]
+; 既定は英語。複数言語定義のため言語選択ダイアログが表示されるが、環境に応じて既定選択が切り替わる (アプリ本体と同じ方針)
+Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
+
+[CustomMessages]
+english.StartupTask=Start {#MyAppName} automatically when Windows starts
+english.AdditionalOptions=Additional options:
+japanese.StartupTask=Windows 起動時に {#MyAppName} を自動起動する
+japanese.AdditionalOptions=追加オプション:
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "startup"; Description: "Windows 起動時に {#MyAppName} を自動起動する"; GroupDescription: "追加オプション:"; Flags: unchecked
+Name: "startup"; Description: "{cm:StartupTask}"; GroupDescription: "{cm:AdditionalOptions}"; Flags: unchecked
 
 [Files]
 Source: "{#MyAppExeSource}"; DestDir: "{app}"; Flags: ignoreversion

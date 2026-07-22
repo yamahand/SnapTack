@@ -3,6 +3,7 @@ using System.Windows;
 using SnapTack.Capture;
 using SnapTack.Interop;
 using SnapTack.Models;
+using SnapTack.Resources;
 using SnapTack.Views;
 
 namespace SnapTack;
@@ -13,14 +14,8 @@ namespace SnapTack;
 /// </summary>
 public partial class App : Application
 {
-    // UI 文字列 (将来の英語化を見据えて集約)
+    // 製品名は翻訳しない。翻訳対象の文字列は Resources/Strings.resx を参照
     private const string AppName = "SnapTack";
-    private const string HotkeyRegisterFailedFormat =
-        "ホットキー ({0}) の登録に失敗しました。\n" +
-        "他のアプリと競合している可能性があります。\n" +
-        "トレイメニューからのキャプチャは引き続き使用できます。";
-    private const string CaptureFailedMessage = "画面のキャプチャに失敗しました。";
-    private const string SettingsSaveFailedMessage = "設定ファイルの保存に失敗しました。設定は次回起動時に元に戻ります。";
 
     // 二重起動防止用の Mutex 名 (同一ユーザーセッション内で一意)
     private const string MutexName = "SnapTack_SingleInstanceMutex";
@@ -46,6 +41,9 @@ public partial class App : Application
         }
 
         base.OnStartup(e);
+
+        // UI を作る前に言語を確定させる。トレイメニューは生成時に文字列が確定するため順序が重要
+        LanguageService.Apply(_settings.Current.Language);
 
         // 付箋は自己完結させ、App 側で参照は保持しない (全部閉じても OnExplicitShutdown なので継続する)
         _capture.SelectionCompleted += (image, physicalRect) =>
@@ -89,7 +87,7 @@ public partial class App : Application
         if (!_hotkey.Register(_settings.Current.HotkeyModifiers, _settings.Current.HotkeyKey))
         {
             MessageBox.Show(
-                string.Format(HotkeyRegisterFailedFormat, _settings.Current.GetHotkeyDisplayText()),
+                string.Format(Strings.HotkeyRegisterFailedFormat, _settings.Current.GetHotkeyDisplayText()),
                 AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
@@ -103,7 +101,7 @@ public partial class App : Application
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or ExternalException)
         {
-            MessageBox.Show(CaptureFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(Strings.CaptureFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -127,9 +125,14 @@ public partial class App : Application
             {
                 if (!_settings.Replace(newSettings))
                 {
-                    MessageBox.Show(SettingsSaveFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    // 永続化に失敗しても、このセッション中は新しい設定で動かす。
+                    // 言語の反映も含めて先に通知しておく (メッセージ自体は変更前の言語で出る)
+                    MessageBox.Show(Strings.SettingsSaveFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
-                _trayIcon?.UpdateHotkeyText(_settings.Current.GetHotkeyDisplayText());
+                // 言語を反映してからメニューを作り直す。既存の付箋は生成時の言語のまま
+                // (付箋は App 側で参照を保持しない自己完結設計のため。SPEC-v1.x)
+                LanguageService.Apply(_settings.Current.Language);
+                _trayIcon?.RebuildMenu(_settings.Current.GetHotkeyDisplayText());
             }
             // 保存・キャンセルどちらでも、現在の設定で即時再登録する
             RegisterHotkeyOrWarn();

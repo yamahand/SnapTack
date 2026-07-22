@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    既定 (フォールバック) 言語 = 英語。日本語は Strings.ja.resx を参照。
+    キー名は i18n 化前に各ファイルへ集約されていた const 名をそのまま引き継いでいる。
+  -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- ===== トレイメニュー (TrayIcon.cs) ===== -->
+  <data name="MenuCaptureTextFormat" xml:space="preserve">
+    <value>&amp;Capture	{0}</value>
+    <comment>{0} = ホットキー表記 (例: Ctrl+Shift+Z)。タブ以降はショートカット表示</comment>
+  </data>
+  <data name="MenuSettingsText" xml:space="preserve">
+    <value>&amp;Settings...</value>
+  </data>
+  <data name="MenuExitText" xml:space="preserve">
+    <value>E&amp;xit</value>
+  </data>
+
+  <!-- ===== 付箋のコンテキストメニュー (ScrapWindow.xaml.cs) ===== -->
+  <data name="MenuCopyText" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="MenuCopyGestureText" xml:space="preserve">
+    <value>Ctrl+C</value>
+  </data>
+  <data name="MenuCloseText" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="MenuCloseGestureText" xml:space="preserve">
+    <value>Middle click</value>
+  </data>
+  <data name="MenuSavePngText" xml:space="preserve">
+    <value>Save as PNG...</value>
+  </data>
+  <data name="MenuSavePngGestureText" xml:space="preserve">
+    <value>Ctrl+S</value>
+  </data>
+  <data name="MenuOpacityText" xml:space="preserve">
+    <value>Opacity</value>
+  </data>
+  <data name="MenuDiceText" xml:space="preserve">
+    <value>Fold to tile</value>
+  </data>
+  <data name="MenuRestoreText" xml:space="preserve">
+    <value>Restore</value>
+  </data>
+  <data name="MenuDiceGestureText" xml:space="preserve">
+    <value>Double-click</value>
+  </data>
+  <data name="SaveFileFilter" xml:space="preserve">
+    <value>PNG image (*.png)|*.png</value>
+  </data>
+  <data name="ClipboardCopyFailedMessage" xml:space="preserve">
+    <value>Failed to copy to the clipboard.
+Another app may currently be using the clipboard.</value>
+  </data>
+  <data name="SavePngFailedMessage" xml:space="preserve">
+    <value>Failed to save the PNG file.
+Check the permissions and free space of the destination.</value>
+  </data>
+
+  <!-- ===== 設定画面 (SettingsWindow.xaml.cs) ===== -->
+  <data name="WindowTitle" xml:space="preserve">
+    <value>SnapTack Settings</value>
+  </data>
+  <data name="HotkeyLabelText" xml:space="preserve">
+    <value>Capture hotkey</value>
+  </data>
+  <data name="HotkeyHintText" xml:space="preserve">
+    <value>Select the box and press a key to change it. Include at least one modifier (Ctrl / Shift / Alt / Win).</value>
+  </data>
+  <data name="SaveButtonText" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="CancelButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ModifierRequiredMessage" xml:space="preserve">
+    <value>Include at least one modifier (Ctrl / Shift / Alt / Win).</value>
+  </data>
+  <data name="LanguageLabelText" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="LanguageAutoText" xml:space="preserve">
+    <value>Auto (follow system)</value>
+  </data>
+  <data name="LanguageEnglishText" xml:space="preserve">
+    <value>English</value>
+    <comment>言語名は自言語表記のままにするため翻訳しない</comment>
+  </data>
+  <data name="LanguageJapaneseText" xml:space="preserve">
+    <value>日本語</value>
+    <comment>言語名は自言語表記のままにするため翻訳しない</comment>
+  </data>
+
+  <!-- ===== アプリ全体のエラー (App.xaml.cs) ===== -->
+  <data name="HotkeyRegisterFailedFormat" xml:space="preserve">
+    <value>Failed to register the hotkey ({0}).
+It may conflict with another app.
+You can still start a capture from the tray menu.</value>
+    <comment>{0} = ホットキー表記 (例: Ctrl+Shift+Z)</comment>
+  </data>
+  <data name="CaptureFailedMessage" xml:space="preserve">
+    <value>Failed to capture the screen.</value>
+  </data>
+  <data name="SettingsSaveFailedMessage" xml:space="preserve">
+    <value>Failed to save the settings file. The settings will revert on the next launch.</value>
+  </data>
+</root>

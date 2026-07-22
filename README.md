@@ -18,6 +18,7 @@ Clip part of a document, an error message, or a reference image in an instant, p
 - Scroll the mouse wheel to change opacity, double-click to fold a note into a small tile to save space
 - Multi-monitor support. Captures at 1:1 physical pixels, with no positional drift even across mixed DPI scaling such as 125% / 150% (Per-Monitor V2 aware)
 - Lives in the system tray. The hotkey can be changed from the settings window
+- Available in English and Japanese. Follows your Windows display language by default, and can be switched manually from the settings window
 - Runs portably — settings are saved to `settings.json` next to the executable, falling back to `%APPDATA%\SnapTack` if that location isn't writable
 
 ## Requirements
@@ -64,7 +65,7 @@ Click **More info** and then **Run anyway** to start the app.
 | Middle-click | Close |
 | Right-click | Menu (copy / save as PNG / opacity / fold / close) |
 
-You can pin as many notes as you like at once. Closing them all leaves the app running in the tray — quit from the tray menu's "終了" (Exit).
+You can pin as many notes as you like at once. Closing them all leaves the app running in the tray — quit from the tray menu's **Exit**.
 
 ## Building
 

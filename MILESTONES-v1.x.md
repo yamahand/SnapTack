@@ -1,7 +1,8 @@
 # SnapTack マイルストーン (v1.x)
 
 MILESTONES.md (M1〜M6) の続き。詳細仕様は SPEC-v1.x.md を参照。
-易→難の順に並べており、M7+M8 完了時点で v1.1、M9 で v1.2、M10 で v1.3 をリリースできる。
+易→難の順に並べており、M7+M8 完了時点で v1.1、M9 で v1.2、M10 で v1.3、M12 で v1.4 をリリースできる。
+(M11 は CI 整備。`docs/MILESTONE-M11.md` を参照)
 
 ## M7: PNG 保存 (→ v1.1 前半)
 
@@ -58,6 +59,22 @@ MILESTONES.md (M1〜M6) の続き。詳細仕様は SPEC-v1.x.md を参照。
 > 「物理ピクセル等倍を維持」モードは実機で期待どおり動作しなかったため、設定項目・実装ともに削除した。付箋の DPI 挙動は WPF の Per-Monitor V2 既定動作に一本化する。v2.0+ で再検討する。
 
 **確認**: セカンダリモニタでキャプチャ→付箋が元位置に重なる。両モニタの DPI が異なっていてもズレない。
+
+## M12: 多言語対応 (→ v1.4)
+
+**ゴール: 英語環境でも UI が読める**
+
+- [x] UI 文字列を `.resx` へ集約(既定 = 英語 `Strings.resx`、日本語 = 衛星 `Strings.ja.resx`)
+- [x] リソースアクセサ `Resources/Strings.cs` を手書きで用意(デザイナ生成は使わない)
+- [x] 設定に `Language`(`Auto` / `English` / `Japanese`)を追加。既定は `Auto`
+- [x] `LanguageService` で UI カルチャを適用(`Auto` は OS 既定へ明示的に戻す)
+- [x] 設定画面に言語コンボボックスを追加
+- [x] 言語変更をトレイメニュー再構築で即時反映(`TrayIcon.RebuildMenu`)
+- [x] single-file publish で衛星アセンブリを exe に埋め込む (`IncludeAllContentForSelfExtract`)
+- [x] インストーラーを英語 / 日本語の 2 言語対応にする
+- [ ] インストーラーのコンパイル確認 → **リリースタグ時が初回**(ローカルに Inno Setup が無いため未検証)
+
+**確認**: 設定で English を選ぶ→再起動なしでトレイメニューが英語になる。exe 単体を別フォルダへコピーしても日本語表示が残る。
 
 ## 実装順の補足
 

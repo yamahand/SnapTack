@@ -9,6 +9,7 @@ using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using SnapTack.Interop;
 using SnapTack.Models;
+using SnapTack.Resources;
 
 namespace SnapTack.Views;
 
@@ -18,25 +19,10 @@ namespace SnapTack.Views;
 /// </summary>
 public partial class ScrapWindow : Window
 {
-    // UI 文字列 (将来の英語化を見据えて集約)
+    // 言語非依存の文字列。翻訳対象は Resources/Strings.resx を参照
     private const string AppName = "SnapTack";
-    private const string MenuCopyText = "コピー";
-    private const string MenuCopyGestureText = "Ctrl+C";
-    private const string MenuCloseText = "閉じる";
-    private const string MenuCloseGestureText = "中クリック";
-    private const string MenuSavePngText = "PNGで保存...";
-    private const string MenuSavePngGestureText = "Ctrl+S";
-    private const string ClipboardCopyFailedMessage =
-        "クリップボードへのコピーに失敗しました。\n他のアプリがクリップボードを使用中の可能性があります。";
-    private const string SavePngFailedMessage =
-        "PNG の保存に失敗しました。\n保存先のアクセス権や空き容量を確認してください。";
     private const string SaveFileNameFormat = "SnapTack_{0:yyyyMMdd_HHmmss}.png";
-    private const string SaveFileFilter = "PNG 画像 (*.png)|*.png";
-    private const string MenuOpacityText = "不透明度";
     private const string OpacityPresetFormat = "{0}%";
-    private const string MenuDiceText = "サイコロ化";
-    private const string MenuRestoreText = "元に戻す";
-    private const string MenuDiceGestureText = "ダブルクリック";
 
     // サイコロ (最小化タイル) のサイズ (SPEC-v1.x 2.3)
     private const double DiceSizeDip = 48.0;
@@ -106,14 +92,14 @@ public partial class ScrapWindow : Window
     /// <summary>コンテキストメニュー: コピー / PNG保存 / 閉じる (SPEC 4.4 + SPEC-v1.x 2.1)。</summary>
     private ContextMenu BuildContextMenu()
     {
-        var copyItem = new MenuItem { Header = MenuCopyText, InputGestureText = MenuCopyGestureText };
+        var copyItem = new MenuItem { Header = Strings.MenuCopyText, InputGestureText = Strings.MenuCopyGestureText };
         copyItem.Click += (_, _) => CopyToClipboard();
 
-        var savePngItem = new MenuItem { Header = MenuSavePngText, InputGestureText = MenuSavePngGestureText };
+        var savePngItem = new MenuItem { Header = Strings.MenuSavePngText, InputGestureText = Strings.MenuSavePngGestureText };
         savePngItem.Click += (_, _) => SaveAsPng();
 
         // 不透明度プリセット。現在値の項目にチェックを付ける (SPEC-v1.x 2.2)
-        var opacityItem = new MenuItem { Header = MenuOpacityText };
+        var opacityItem = new MenuItem { Header = Strings.MenuOpacityText };
         foreach (int percent in OpacityPresets)
         {
             var presetItem = new MenuItem { Header = string.Format(OpacityPresetFormat, percent), Tag = percent };
@@ -123,10 +109,10 @@ public partial class ScrapWindow : Window
         }
 
         // サイコロ化 ⇔ 元に戻す (状態に応じて表記切替、SPEC-v1.x 2.3)
-        _diceMenuItem = new MenuItem { Header = MenuDiceText, InputGestureText = MenuDiceGestureText };
+        _diceMenuItem = new MenuItem { Header = Strings.MenuDiceText, InputGestureText = Strings.MenuDiceGestureText };
         _diceMenuItem.Click += (_, _) => ToggleDice();
 
-        var closeItem = new MenuItem { Header = MenuCloseText, InputGestureText = MenuCloseGestureText };
+        var closeItem = new MenuItem { Header = Strings.MenuCloseText, InputGestureText = Strings.MenuCloseGestureText };
         closeItem.Click += (_, _) => Close();
 
         var menu = new ContextMenu();
@@ -227,7 +213,7 @@ public partial class ScrapWindow : Window
         }
         if (_diceMenuItem is not null)
         {
-            _diceMenuItem.Header = _isDice ? MenuRestoreText : MenuDiceText;
+            _diceMenuItem.Header = _isDice ? Strings.MenuRestoreText : Strings.MenuDiceText;
         }
     }
 
@@ -278,7 +264,7 @@ public partial class ScrapWindow : Window
         {
             FileName = string.Format(SaveFileNameFormat, DateTime.Now),
             DefaultExt = ".png",
-            Filter = SaveFileFilter,
+            Filter = Strings.SaveFileFilter,
             InitialDirectory = GetInitialSaveDirectory(),
         };
         if (dialog.ShowDialog(this) != true)
@@ -302,7 +288,7 @@ public partial class ScrapWindow : Window
                 or ArgumentException or NotSupportedException or System.Security.SecurityException)
         {
             // 不正なパスの手入力・権限不足・書き込み失敗など。付箋は維持する (SPEC-v1.x 2.1)
-            MessageBox.Show(SavePngFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(Strings.SavePngFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -331,7 +317,7 @@ public partial class ScrapWindow : Window
         catch (ExternalException)
         {
             // 他プロセスがクリップボードをロックしていると失敗する
-            MessageBox.Show(ClipboardCopyFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(Strings.ClipboardCopyFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 }
