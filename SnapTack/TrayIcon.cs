@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Windows.Forms;
+using SnapTack.Resources;
 
 namespace SnapTack;
 
@@ -9,14 +10,10 @@ namespace SnapTack;
 /// </summary>
 public sealed class TrayIcon : IDisposable
 {
-    // UI 文字列 (将来の英語化を見据えて集約)
+    // 製品名は翻訳しないため const のまま
     private const string TooltipText = "SnapTack";
-    private const string MenuCaptureTextFormat = "キャプチャ(&C)\t{0}";
-    private const string MenuSettingsText = "設定(&S)...";
-    private const string MenuExitText = "終了(&X)";
 
     private readonly NotifyIcon _notifyIcon;
-    private readonly ToolStripMenuItem _captureItem;
     private readonly Icon _icon;
 
     /// <summary>メニューの「キャプチャ」またはアイコンのダブルクリックで発火する。</summary>
@@ -30,28 +27,34 @@ public sealed class TrayIcon : IDisposable
 
     public TrayIcon(string hotkeyDisplayText)
     {
-        var menu = new ContextMenuStrip();
-
-        _captureItem = new ToolStripMenuItem(string.Format(MenuCaptureTextFormat, hotkeyDisplayText));
-        _captureItem.Click += (_, _) => CaptureRequested?.Invoke(this, EventArgs.Empty);
-        menu.Items.Add(_captureItem);
-
-        var settingsItem = new ToolStripMenuItem(MenuSettingsText);
-        settingsItem.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
-        menu.Items.Add(settingsItem);
-
-        menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(MenuExitText, image: null, (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty));
-
         _icon = LoadAppIcon();
         _notifyIcon = new NotifyIcon
         {
             Icon = _icon,
             Text = TooltipText,
-            ContextMenuStrip = menu,
+            ContextMenuStrip = BuildMenu(hotkeyDisplayText),
             Visible = true,
         };
         _notifyIcon.DoubleClick += (_, _) => CaptureRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>現在の UI 言語でコンテキストメニューを構築する。</summary>
+    private ContextMenuStrip BuildMenu(string hotkeyDisplayText)
+    {
+        var menu = new ContextMenuStrip();
+
+        var captureItem = new ToolStripMenuItem(string.Format(Strings.MenuCaptureTextFormat, hotkeyDisplayText));
+        captureItem.Click += (_, _) => CaptureRequested?.Invoke(this, EventArgs.Empty);
+        menu.Items.Add(captureItem);
+
+        var settingsItem = new ToolStripMenuItem(Strings.MenuSettingsText);
+        settingsItem.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
+        menu.Items.Add(settingsItem);
+
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(Strings.MenuExitText, image: null, (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty));
+
+        return menu;
     }
 
     /// <summary>WPF リソースの .ico からトレイ用サイズ (DPI 追従) のアイコンを読み込む。</summary>
@@ -64,10 +67,16 @@ public sealed class TrayIcon : IDisposable
         return new Icon(stream, SystemInformation.SmallIconSize);
     }
 
-    /// <summary>ホットキー変更時にメニューの表記を更新する。</summary>
-    public void UpdateHotkeyText(string hotkeyDisplayText)
+    /// <summary>
+    /// メニューを現在の UI 言語・ホットキー表記で作り直す。
+    /// 設定の保存後に呼ぶことで、言語変更が再起動なしで反映される。
+    /// </summary>
+    public void RebuildMenu(string hotkeyDisplayText)
     {
-        _captureItem.Text = string.Format(MenuCaptureTextFormat, hotkeyDisplayText);
+        var old = _notifyIcon.ContextMenuStrip;
+        _notifyIcon.ContextMenuStrip = BuildMenu(hotkeyDisplayText);
+        // 差し替え後に破棄する。表示中のメニューを破棄しないよう順序を守ること
+        old?.Dispose();
     }
 
     public void Dispose()

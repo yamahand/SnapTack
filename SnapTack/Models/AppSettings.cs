@@ -2,6 +2,15 @@ using System.Windows.Input;
 
 namespace SnapTack.Models;
 
+/// <summary>UI 言語。</summary>
+public enum AppLanguage
+{
+    /// <summary>OS の表示言語に従う (対応言語になければ英語)。</summary>
+    Auto,
+    English,
+    Japanese,
+}
+
 /// <summary>アプリ設定。JSON で永続化する (SPEC 4.5)。</summary>
 public class AppSettings
 {
@@ -13,6 +22,9 @@ public class AppSettings
 
     /// <summary>PNG 保存の前回フォルダ。未保存なら null で「ピクチャ」を使う (SPEC-v1.x 2.1)。</summary>
     public string? LastSaveDirectory { get; set; }
+
+    /// <summary>UI 言語。既定は Auto (OS の表示言語に従う)。</summary>
+    public AppLanguage Language { get; set; } = AppLanguage.Auto;
 
     /// <summary>浅いコピーを返す。設定画面が一部項目だけ書き換える際に使う。</summary>
     public AppSettings Clone() => (AppSettings)MemberwiseClone();

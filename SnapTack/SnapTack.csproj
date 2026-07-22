@@ -13,6 +13,15 @@
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
     <ApplicationIcon>Assets\SnapTack.ico</ApplicationIcon>
     <!-- Version / Product / Description は Directory.Build.props で一元管理する -->
+
+    <!-- UI 文字列の既定 (フォールバック) 言語。Strings.resx が英語、Strings.ja.resx が衛星 -->
+    <NeutralLanguage>en</NeutralLanguage>
+    <!-- 衛星アセンブリは ja のみ生成する (依存パッケージの余分なロケールを持ち込まない) -->
+    <SatelliteResourceLanguages>en;ja</SatelliteResourceLanguages>
+    <!-- single-file publish で衛星アセンブリ (ja\SnapTack.resources.dll) を exe に埋め込む。
+         未指定だと ja フォルダが exe と別に出力され、exe 単体を配布するインストーラー
+         (installer/SnapTack.iss は SnapTack.exe のみコピーする) で日本語表示が失われる -->
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 日本語 (衛星アセンブリ)。既定は Strings.resx (英語)。 -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- ===== トレイメニュー (TrayIcon.cs) ===== -->
+  <data name="MenuCaptureTextFormat" xml:space="preserve">
+    <value>キャプチャ(&amp;C)	{0}</value>
+  </data>
+  <data name="MenuSettingsText" xml:space="preserve">
+    <value>設定(&amp;S)...</value>
+  </data>
+  <data name="MenuExitText" xml:space="preserve">
+    <value>終了(&amp;X)</value>
+  </data>
+
+  <!-- ===== 付箋のコンテキストメニュー (ScrapWindow.xaml.cs) ===== -->
+  <data name="MenuCopyText" xml:space="preserve">
+    <value>コピー</value>
+  </data>
+  <data name="MenuCopyGestureText" xml:space="preserve">
+    <value>Ctrl+C</value>
+  </data>
+  <data name="MenuCloseText" xml:space="preserve">
+    <value>閉じる</value>
+  </data>
+  <data name="MenuCloseGestureText" xml:space="preserve">
+    <value>中クリック</value>
+  </data>
+  <data name="MenuSavePngText" xml:space="preserve">
+    <value>PNGで保存...</value>
+  </data>
+  <data name="MenuSavePngGestureText" xml:space="preserve">
+    <value>Ctrl+S</value>
+  </data>
+  <data name="MenuOpacityText" xml:space="preserve">
+    <value>不透明度</value>
+  </data>
+  <data name="MenuDiceText" xml:space="preserve">
+    <value>サイコロ化</value>
+  </data>
+  <data name="MenuRestoreText" xml:space="preserve">
+    <value>元に戻す</value>
+  </data>
+  <data name="MenuDiceGestureText" xml:space="preserve">
+    <value>ダブルクリック</value>
+  </data>
+  <data name="SaveFileFilter" xml:space="preserve">
+    <value>PNG 画像 (*.png)|*.png</value>
+  </data>
+  <data name="ClipboardCopyFailedMessage" xml:space="preserve">
+    <value>クリップボードへのコピーに失敗しました。
+他のアプリがクリップボードを使用中の可能性があります。</value>
+  </data>
+  <data name="SavePngFailedMessage" xml:space="preserve">
+    <value>PNG の保存に失敗しました。
+保存先のアクセス権や空き容量を確認してください。</value>
+  </data>
+
+  <!-- ===== 設定画面 (SettingsWindow.xaml.cs) ===== -->
+  <data name="WindowTitle" xml:space="preserve">
+    <value>SnapTack 設定</value>
+  </data>
+  <data name="HotkeyLabelText" xml:space="preserve">
+    <value>キャプチャホットキー</value>
+  </data>
+  <data name="HotkeyHintText" xml:space="preserve">
+    <value>ボックスを選択してキーを押すと変更されます。修飾キー (Ctrl / Shift / Alt / Win) を1つ以上含めてください。</value>
+  </data>
+  <data name="SaveButtonText" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="CancelButtonText" xml:space="preserve">
+    <value>キャンセル</value>
+  </data>
+  <data name="ModifierRequiredMessage" xml:space="preserve">
+    <value>修飾キー (Ctrl / Shift / Alt / Win) を1つ以上含めてください。</value>
+  </data>
+  <data name="LanguageLabelText" xml:space="preserve">
+    <value>言語</value>
+  </data>
+  <data name="LanguageAutoText" xml:space="preserve">
+    <value>自動 (システムに従う)</value>
+  </data>
+  <data name="LanguageEnglishText" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="LanguageJapaneseText" xml:space="preserve">
+    <value>日本語</value>
+  </data>
+
+  <!-- ===== アプリ全体のエラー (App.xaml.cs) ===== -->
+  <data name="HotkeyRegisterFailedFormat" xml:space="preserve">
+    <value>ホットキー ({0}) の登録に失敗しました。
+他のアプリと競合している可能性があります。
+トレイメニューからのキャプチャは引き続き使用できます。</value>
+  </data>
+  <data name="CaptureFailedMessage" xml:space="preserve">
+    <value>画面のキャプチャに失敗しました。</value>
+  </data>
+  <data name="SettingsSaveFailedMessage" xml:space="preserve">
+    <value>設定ファイルの保存に失敗しました。設定は次回起動時に元に戻ります。</value>
+  </data>
+</root>

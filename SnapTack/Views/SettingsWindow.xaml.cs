@@ -1,6 +1,8 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using SnapTack.Models;
+using SnapTack.Resources;
 
 namespace SnapTack.Views;
 
@@ -10,14 +12,6 @@ namespace SnapTack.Views;
 /// </summary>
 public partial class SettingsWindow : Window
 {
-    // UI 文字列 (将来の英語化を見据えて集約)
-    private const string WindowTitle = "SnapTack 設定";
-    private const string HotkeyLabelText = "キャプチャホットキー";
-    private const string HotkeyHintText = "ボックスを選択してキーを押すと変更されます。修飾キー (Ctrl / Shift / Alt / Win) を1つ以上含めてください。";
-    private const string SaveButtonText = "保存";
-    private const string CancelButtonText = "キャンセル";
-    private const string ModifierRequiredMessage = "修飾キー (Ctrl / Shift / Alt / Win) を1つ以上含めてください。";
-
     private readonly AppSettings _current;
     private ModifierKeys _modifiers;
     private Key _key;
@@ -30,16 +24,48 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         _current = current;
 
-        Title = WindowTitle;
-        HotkeyLabel.Text = HotkeyLabelText;
-        HotkeyHint.Text = HotkeyHintText;
-        SaveButton.Content = SaveButtonText;
-        CancelButton.Content = CancelButtonText;
+        Title = Strings.WindowTitle;
+        HotkeyLabel.Text = Strings.HotkeyLabelText;
+        HotkeyHint.Text = Strings.HotkeyHintText;
+        LanguageLabel.Text = Strings.LanguageLabelText;
+        SaveButton.Content = Strings.SaveButtonText;
+        CancelButton.Content = Strings.CancelButtonText;
+
+        InitializeLanguageBox(current.Language);
 
         _modifiers = current.HotkeyModifiers;
         _key = current.HotkeyKey;
         UpdateHotkeyBoxText();
     }
+
+    /// <summary>言語コンボボックスに選択肢を並べ、現在の設定を選択状態にする。</summary>
+    private void InitializeLanguageBox(AppLanguage current)
+    {
+        // 言語名 (English / 日本語) は自言語表記のままにするため、リソース側でも翻訳していない
+        (AppLanguage Value, string Text)[] items =
+        [
+            (AppLanguage.Auto, Strings.LanguageAutoText),
+            (AppLanguage.English, Strings.LanguageEnglishText),
+            (AppLanguage.Japanese, Strings.LanguageJapaneseText),
+        ];
+
+        foreach (var (value, text) in items)
+        {
+            var item = new ComboBoxItem { Content = text, Tag = value };
+            LanguageBox.Items.Add(item);
+            if (value == current)
+            {
+                LanguageBox.SelectedItem = item;
+            }
+        }
+
+        // 設定ファイルが未知の値を持っていた場合に無選択のままにしない
+        LanguageBox.SelectedIndex = LanguageBox.SelectedIndex < 0 ? 0 : LanguageBox.SelectedIndex;
+    }
+
+    /// <summary>コンボボックスで選択中の言語を返す。</summary>
+    private AppLanguage SelectedLanguage =>
+        LanguageBox.SelectedItem is ComboBoxItem { Tag: AppLanguage language } ? language : AppLanguage.Auto;
 
     private void OnHotkeyBoxPreviewKeyDown(object sender, KeyEventArgs e)
     {
@@ -87,7 +113,7 @@ public partial class SettingsWindow : Window
         // 修飾キーなしの登録は通常のキー入力を乗っ取ってしまうため許可しない
         if (_modifiers == ModifierKeys.None)
         {
-            MessageBox.Show(this, ModifierRequiredMessage, WindowTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, Strings.ModifierRequiredMessage, Strings.WindowTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -95,6 +121,7 @@ public partial class SettingsWindow : Window
         var result = _current.Clone();
         result.HotkeyModifiers = _modifiers;
         result.HotkeyKey = _key;
+        result.Language = SelectedLanguage;
         Result = result;
         Close();
     }
