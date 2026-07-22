@@ -15,9 +15,6 @@
                  PreviewKeyDown="OnHotkeyBoxPreviewKeyDown"
                  PreviewTextInput="OnHotkeyBoxPreviewTextInput" />
         <TextBlock x:Name="HotkeyHint" Margin="0,8,0,0" FontSize="12" Opacity="0.7" TextWrapping="Wrap" />
-        <CheckBox x:Name="KeepPixelSizeCheck" Margin="0,16,0,0" MaxWidth="320">
-            <TextBlock x:Name="KeepPixelSizeText" TextWrapping="Wrap" />
-        </CheckBox>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
             <Button x:Name="SaveButton" MinWidth="88" IsDefault="True" Click="OnSaveClick" />
             <Button x:Name="CancelButton" MinWidth="88" Margin="8,0,0,0" IsCancel="True" Click="OnCancelClick" />
