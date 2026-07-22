@@ -4,8 +4,10 @@
 
 画面の範囲キャプチャを「付箋(スクラップ)」として画面に貼る Windows 常駐ツール。SETUNA2 の後継を目指す。
 
-- 仕様: `SPEC.md` (v1.0) + `SPEC-v1.x.md` (v1.1 以降の追補)
-- 実装順: `MILESTONES.md` (M1〜M6) + `MILESTONES-v1.x.md` (M7 以降)
+開発ドキュメントは `docs/` に集約している(ルートに置くのは README と本書のみ)。
+
+- 仕様: `docs/SPEC.md` (v1.0) + `docs/SPEC-v1.x.md` (v1.1 以降の追補)
+- 実装順: `docs/MILESTONES.md` (M1〜M6) + `docs/MILESTONES-v1.x.md` (M7 以降)
 - CI 方針: `docs/CI.md`
 
 ## 技術スタック(変更禁止)

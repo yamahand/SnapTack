@@ -106,6 +106,10 @@ git push origin v1.4.0
 その後 [Releases](../../releases) を開き、添付ファイルを確認してリリースノートを書き、
 ドラフトを手動で公開します。
 
+### 開発ドキュメント
+
+仕様・マイルストーン・CI 方針は [docs/](docs/README.md) にあります。
+
 ## ライセンス
 
 [MIT License](LICENSE)
