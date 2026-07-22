@@ -8,21 +8,27 @@ namespace SnapTack.Models;
 /// </summary>
 public static class LanguageService
 {
+    /// <summary>
+    /// 起動時点の UI カルチャ (= Windows の「表示言語」)。Auto の戻り先として使う。
+    /// <see cref="CultureInfo.InstalledUICulture"/> は OS の<em>インストール</em>言語で固定のため、
+    /// 表示言語だけを切り替えている環境では「OS の表示言語に従う」仕様とズレる。
+    /// Apply で CurrentUICulture を上書きする前に確定させる必要があるので static 初期化で捕まえる。
+    /// </summary>
+    private static readonly CultureInfo StartupUICulture = CultureInfo.CurrentUICulture;
+
     /// <summary>設定の言語を現在のスレッドと以降の新規スレッドへ適用する。</summary>
     public static void Apply(AppLanguage language)
     {
-        var culture = ToCulture(language);
-
-        // Auto は OS 既定の UI カルチャに任せる。起動時は何もしなくてよいが、
-        // 別言語から Auto へ戻す場合は明示的に OS 既定へ戻す必要がある
-        culture ??= CultureInfo.InstalledUICulture;
+        // Auto は起動時の UI カルチャへ戻す。English/Japanese から Auto へ戻す場合に
+        // 上書き済みの CurrentUICulture を参照しないよう、スナップショットを使う
+        var culture = ToCulture(language) ?? StartupUICulture;
 
         // DefaultThreadCurrentUICulture だけでは実行中のスレッドに効かないため両方に設定する
         CultureInfo.DefaultThreadCurrentUICulture = culture;
         Thread.CurrentThread.CurrentUICulture = culture;
     }
 
-    /// <summary>言語に対応する UI カルチャを返す。Auto は null (OS 既定に従う)。</summary>
+    /// <summary>言語に対応する UI カルチャを返す。Auto は null (呼び出し側で起動時の値を使う)。</summary>
     private static CultureInfo? ToCulture(AppLanguage language) => language switch
     {
         AppLanguage.English => new CultureInfo("en"),
