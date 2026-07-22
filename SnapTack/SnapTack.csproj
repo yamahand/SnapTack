@@ -12,9 +12,7 @@
     <!-- ThemeMode (Fluent) は実験的 API 扱いのため WPF0001 を抑制する (CLAUDE.md) -->
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
     <ApplicationIcon>Assets\SnapTack.ico</ApplicationIcon>
-    <Version>1.3.0</Version>
-    <Product>SnapTack</Product>
-    <Description>画面の範囲キャプチャを付箋として貼れる常駐ツール</Description>
+    <!-- Version / Product / Description は Directory.Build.props で一元管理する -->
   </PropertyGroup>
 
   <ItemGroup>

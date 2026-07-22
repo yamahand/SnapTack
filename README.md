@@ -2,6 +2,8 @@
 
 **English** | [日本語](README.ja.md)
 
+[![CI](https://github.com/yamahand/SnapTack/actions/workflows/ci.yml/badge.svg)](https://github.com/yamahand/SnapTack/actions/workflows/ci.yml)
+
 A Windows tray utility that captures any region of your screen and pins it to the desktop as a sticky note.
 It aims to be a successor to SETUNA2, a freeware tool that is no longer developed.
 
@@ -36,6 +38,11 @@ Download a zip from [Releases](../../releases), extract it anywhere, and run `Sn
 ### Installer
 
 Download `SnapTack-vX.X.X-setup.exe` from [Releases](../../releases) and run it.
+
+### If Windows blocks the app
+
+The binaries are not code-signed, so SmartScreen shows a "Windows protected your PC" dialog the first time you run them.
+Click **More info** and then **Run anyway** to start the app.
 
 ## Usage
 
@@ -74,6 +81,29 @@ pwsh scripts/publish.ps1
 # Picks up the executable from artifacts/publish (the runtime-included build)
 iscc installer\SnapTack.iss
 ```
+
+The version number is defined once, in `Directory.Build.props`. The commands above use that
+value; for a release the Git tag takes precedence and is passed in by CI.
+
+```powershell
+# Run the tests
+dotnet test SnapTack.slnx
+```
+
+### Releasing
+
+Releases are automated. Pushing a `v*` tag builds both portable zips and the installer,
+and attaches them to a **draft** GitHub Release:
+
+```powershell
+# 1. Bump <Version> in Directory.Build.props, then commit it
+# 2. Tag and push — this is what triggers the release workflow
+git tag v1.4.0
+git push origin v1.4.0
+```
+
+Then open [Releases](../../releases), check the attached files, write the release notes,
+and publish the draft manually.
 
 ## License
 

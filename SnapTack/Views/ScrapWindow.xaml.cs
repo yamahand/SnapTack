@@ -41,10 +41,8 @@ public partial class ScrapWindow : Window
     // サイコロ (最小化タイル) のサイズ (SPEC-v1.x 2.3)
     private const double DiceSizeDip = 48.0;
 
-    // 不透明度の範囲・ステップ (SPEC-v1.x 2.2)
-    private const int OpacityMinPercent = 20;
-    private const int OpacityMaxPercent = 100;
-    private const int OpacityStepPercent = 10;
+    // 不透明度の範囲・ステップ (SPEC-v1.x 2.2) は OpacityLevel が持つ
+    private const int OpacityMaxPercent = OpacityLevel.MaxPercent;
     private static readonly int[] OpacityPresets = [100, 75, 50, 25];
 
     private readonly BitmapSource _image;      // 物理ピクセル (Freeze 済み)
@@ -170,24 +168,10 @@ public partial class ScrapWindow : Window
         int percent = _opacityPercent;
         for (int i = 0; i < Math.Abs(notches); i++)
         {
-            percent = NextOpacityPercent(percent, direction);
+            percent = OpacityLevel.Next(percent, direction);
         }
         SetOpacityPercent(percent);
         e.Handled = true;
-    }
-
-    /// <summary>
-    /// ホイール 1 ステップ後の不透明度を返す。
-    /// 現在値が 10% の倍数のときは ±10%。倍数でない (プリセット 75% / 25% 適用後) ときは
-    /// 直近の倍数へスナップする (75% / 25% の場合は結果的に ±5% になる、SPEC-v1.x 2.2)。
-    /// </summary>
-    private static int NextOpacityPercent(int current, int direction)
-    {
-        int remainder = current % OpacityStepPercent;
-        int next = remainder == 0
-            ? current + direction * OpacityStepPercent
-            : direction > 0 ? current + (OpacityStepPercent - remainder) : current - remainder;
-        return Math.Clamp(next, OpacityMinPercent, OpacityMaxPercent);
     }
 
     private void SetOpacityPercent(int percent)

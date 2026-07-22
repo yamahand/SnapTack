@@ -3,12 +3,28 @@
 # 使い方: pwsh scripts/publish.ps1
 param(
     [string]$Runtime = "win-x64",
-    [string]$Version = "1.3.0"
+    # 省略時は Directory.Build.props の <Version> を使う (CI からは明示的に渡す)
+    [string]$Version
 )
 
 $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path $PSScriptRoot
 $csproj = Join-Path $repoRoot "SnapTack\SnapTack.csproj"
+
+# -Version 省略時は props の値を読み取る。zip 名にバージョンを含めるため、
+# ビルドへ渡さない場合でも実際の値を知る必要がある
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    # -nologo / -verbosity:quiet がないと環境によってロゴ等が混ざり、値が汚れる
+    $Version = (dotnet msbuild $csproj -getProperty:Version -nologo -verbosity:quiet | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($Version)) {
+        throw "Directory.Build.props からバージョンを取得できませんでした"
+    }
+    $versionArgs = @()
+    Write-Host "Version (props): $Version"
+} else {
+    $versionArgs = @("-p:Version=$Version")
+    Write-Host "Version (explicit): $Version"
+}
 
 # 同梱版の出力先は installer/SnapTack.iss が参照しているため artifacts\publish から変えないこと
 $targets = @(
@@ -27,7 +43,7 @@ foreach ($t in $targets) {
         -c Release `
         -r $Runtime `
         --self-contained $($t.SelfContained.ToString().ToLower()) `
-        -p:Version=$Version `
+        @versionArgs `
         -p:PublishSingleFile=true `
         -p:IncludeNativeLibrariesForSelfExtract=true `
         -p:DebugType=None `
