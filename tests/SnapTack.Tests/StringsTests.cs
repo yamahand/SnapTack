@@ -78,9 +78,14 @@ public class StringsTests
     [Fact]
     public void アクセサは存在しないキーでもキー名を返す()
     {
-        // 翻訳漏れでアプリを落とさないための保険が効いていること。
-        // Strings の private な Get を経由できないため、同じ ResourceManager の挙動で代替検証する
-        Assert.Null(Manager.GetString("NoSuchKey_ForTest", CultureInfo.InvariantCulture));
+        // 翻訳漏れでアプリを落とさないための保険 (Strings.Get の `?? key`) が効いていること。
+        // Get は private なのでリフレクション経由で直接呼ぶ
+        var get = typeof(Strings).GetMethod("Get", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(get);
+
+        var result = get!.Invoke(null, ["NoSuchKey_ForTest"]);
+
+        Assert.Equal("NoSuchKey_ForTest", result);
     }
 
     [Fact]
@@ -90,6 +95,9 @@ public class StringsTests
         foreach (string culture in new[] { "en", "ja" })
         {
             var text = Manager.GetString("HotkeyRegisterFailedFormat", new CultureInfo(culture));
+            // 先に NotNull を見ておく。null のまま Contains へ渡すと ArgumentNullException になり、
+            // 「キーが無い」のか「書式指定子が消えた」のか失敗理由が分からなくなる
+            Assert.NotNull(text);
             Assert.Contains("{0}", text);
         }
     }
@@ -101,6 +109,7 @@ public class StringsTests
         foreach (string culture in new[] { "en", "ja" })
         {
             var text = Manager.GetString("MenuCaptureTextFormat", new CultureInfo(culture));
+            Assert.NotNull(text);
             Assert.Contains("{0}", text);
             Assert.Contains("\t", text);
         }
