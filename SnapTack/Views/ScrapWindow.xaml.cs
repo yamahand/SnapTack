@@ -53,7 +53,7 @@ public partial class ScrapWindow : Window
     private int _opacityPercent = OpacityMaxPercent; // 新規付箋は常に 100% (SPEC-v1.x 2.2)
     private bool _isDice;
     private MenuItem? _diceMenuItem;
-    private Size _dipSizeBeforeDice; // サイコロ化直前の DIP サイズ (WPF 既定モードでの復元用)
+    private Size _dipSizeBeforeDice; // サイコロ化直前の DIP サイズ (復元用)
 
     // 左ボタン押下位置 (DIP)。しきい値を超えて動いたら初めて DragMove を開始する。
     // これにより「移動を伴わないクリック」のみがダブルクリック判定に残る (SPEC-v1.x 4)
@@ -100,26 +100,6 @@ public partial class ScrapWindow : Window
             Top = _physicalRect.Y / dpi.DpiScaleY;
             Width = _physicalRect.Width / dpi.DpiScaleX;
             Height = _physicalRect.Height / dpi.DpiScaleY;
-        }
-    }
-
-    /// <summary>
-    /// DPI の異なるモニタへ移動したときの挙動 (SPEC-v1.x 2.4)。
-    /// 既定は WPF の既定動作 (DIP サイズ維持 = 再スケーリング) に任せ、
-    /// KeepPhysicalPixelSize 有効時のみ物理ピクセル等倍を維持する。
-    /// </summary>
-    protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
-    {
-        base.OnDpiChanged(oldDpi, newDpi);
-        if (_isDice)
-        {
-            // サイコロは 48×48 DIP 固定 (SPEC-v1.x 2.3)
-            return;
-        }
-        if (_settings.Current.KeepPhysicalPixelSize)
-        {
-            Width = _physicalRect.Width / newDpi.DpiScaleX;
-            Height = _physicalRect.Height / newDpi.DpiScaleY;
         }
     }
 
@@ -240,19 +220,9 @@ public partial class ScrapWindow : Window
         {
             ScrapImage.Visibility = Visibility.Visible;
             DiceThumb.Visibility = Visibility.Collapsed;
-            if (_settings.Current.KeepPhysicalPixelSize)
-            {
-                // 現在のモニタ DPI で物理ピクセル等倍になるサイズへ戻す
-                var dpi = VisualTreeHelper.GetDpi(this);
-                Width = _physicalRect.Width / dpi.DpiScaleX;
-                Height = _physicalRect.Height / dpi.DpiScaleY;
-            }
-            else
-            {
-                // WPF 既定モード: サイコロ化直前の DIP サイズへ戻す
-                Width = _dipSizeBeforeDice.Width;
-                Height = _dipSizeBeforeDice.Height;
-            }
+            // サイコロ化直前の DIP サイズへ戻す
+            Width = _dipSizeBeforeDice.Width;
+            Height = _dipSizeBeforeDice.Height;
             ClampIntoCurrentMonitor();
         }
         if (_diceMenuItem is not null)
