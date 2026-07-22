@@ -106,6 +106,10 @@ git push origin v1.4.0
 Then open [Releases](../../releases), check the attached files, write the release notes,
 and publish the draft manually.
 
+### Development docs
+
+Specifications, milestones, and the CI policy live in [docs/](docs/README.md).
+
 ## License
 
 [MIT License](LICENSE)
