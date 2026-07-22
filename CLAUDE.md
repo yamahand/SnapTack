@@ -6,8 +6,8 @@
 
 開発ドキュメントは `docs/` に集約している(ルートに置くのは README と本書のみ)。
 
-- 仕様: `docs/SPEC.md` (v1.0) + `docs/SPEC-v1.x.md` (v1.1 以降の追補)
-- 実装順: `docs/MILESTONES.md` (M1〜M6) + `docs/MILESTONES-v1.x.md` (M7 以降)
+- 仕様: `docs/SPEC.md` (v1.0) + `docs/SPEC-v1.x.md` (v1.1〜v1.4) + `docs/SPEC-v1.5.md` (v1.5)
+- 実装順: `docs/MILESTONES.md` (M1〜M6) + `docs/MILESTONES-v1.x.md` (M7〜M12) + `docs/MILESTONES-v1.5.md` (M13〜)
 - CI 方針: `docs/CI.md`
 
 ## 技術スタック(変更禁止)
@@ -39,7 +39,7 @@ tests/SnapTack.Tests/   xUnit
 
 `ScrapWindow` は生成後に App 側が参照を保持しない。全部閉じても `ShutdownMode=OnExplicitShutdown` で常駐は続く。
 
-この設計は v2.0 のスクラップリスト実装時に再設計する予定。**それまでは App から付箋を一括操作する機能を足さないこと**(言語切替の即時反映を表示中の付箋に及ぼさないのもこの理由)。
+この設計は **v1.5 の M13 (スクラップリスト) で `ScrapManager` へ移行する予定**(`docs/SPEC-v1.5.md` 3.1)。**M13 に着手するまでは App から付箋を一括操作する機能を足さないこと**(言語切替の即時反映を表示中の付箋に及ぼさないのもこの理由)。
 
 ### キャプチャのフリーズ方式
 
