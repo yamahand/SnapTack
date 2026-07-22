@@ -67,14 +67,16 @@ MILESTONES.md (M1〜M6) の続き。詳細仕様は SPEC-v1.x.md を参照。
 - [x] UI 文字列を `.resx` へ集約(既定 = 英語 `Strings.resx`、日本語 = 衛星 `Strings.ja.resx`)
 - [x] リソースアクセサ `Resources/Strings.cs` を手書きで用意(デザイナ生成は使わない)
 - [x] 設定に `Language`(`Auto` / `English` / `Japanese`)を追加。既定は `Auto`
-- [x] `LanguageService` で UI カルチャを適用(`Auto` は OS 既定へ明示的に戻す)
+- [x] `LanguageService` で UI カルチャを適用(`Auto` は起動時の表示言語へ戻す)
 - [x] 設定画面に言語コンボボックスを追加
 - [x] 言語変更をトレイメニュー再構築で即時反映(`TrayIcon.RebuildMenu`)
 - [x] single-file publish で衛星アセンブリを exe に埋め込む (`IncludeAllContentForSelfExtract`)
 - [x] インストーラーを英語 / 日本語の 2 言語対応にする
-- [ ] インストーラーのコンパイル確認 → **リリースタグ時が初回**(ローカルに Inno Setup が無いため未検証)
+- [x] インストーラーのコンパイル確認(v1.4.0 のリリースワークフローで成功、`setup.exe` 添付済み)
 
 **確認**: 設定で English を選ぶ→再起動なしでトレイメニューが英語になる。exe 単体を別フォルダへコピーしても日本語表示が残る。
+
+> `Auto` の戻り先は当初 `CultureInfo.InstalledUICulture` だったが、これは OS の**インストール**言語で固定のため、表示言語だけを切り替えている環境で仕様とズレていた(PR #9 のレビュー指摘)。起動時の `CurrentUICulture` をスナップショットする方式に修正済み。
 
 ## 実装順の補足
 
