@@ -1,4 +1,8 @@
+using System.Runtime.CompilerServices;
 using System.Windows;
+
+// テストから internal メンバー (LanguageService.Resolve、Resources.Strings) を検証するため
+[assembly: InternalsVisibleTo("SnapTack.Tests")]
 
 [assembly:ThemeInfo(
     ResourceDictionaryLocation.None,            //where theme specific resource dictionaries are located
