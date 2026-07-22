@@ -41,7 +41,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
 [Languages]
-; 既定は英語。日本語環境ではインストーラーが自動で日本語を選ぶ (アプリ本体と同じ方針)
+; 既定は英語。複数言語定義のため言語選択ダイアログが表示されるが、環境に応じて既定選択が切り替わる (アプリ本体と同じ方針)
 Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 
