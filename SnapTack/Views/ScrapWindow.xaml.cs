@@ -67,6 +67,8 @@ public partial class ScrapWindow : Window, IScrapView
         ScrapImage.Source = _image;
         DiceBrush.ImageSource = _image;
         ContextMenu = BuildContextMenu();
+        // 復元されたスクラップは保存済みの不透明度を引き継ぐ (新規は既定 100%)
+        _opacityPercent = item.OpacityPercent;
         SetOpacityPercent(_opacityPercent);
     }
 
@@ -94,18 +96,48 @@ public partial class ScrapWindow : Window, IScrapView
             TrashRequested?.Invoke(this, EventArgs.Empty);
             return;
         }
+        // 実際に閉じる直前に現在の表示状態を Item へ書き戻す。位置はここ (閉じる時) と
+        // アプリ終了時にだけ保存する。ドラッグのたびには保存しない (SPEC-v1.5 2.4)
+        SaveStateToItem();
         base.OnClosing(e);
+    }
+
+    /// <summary>現在の不透明度・サイコロ状態・表示位置 (物理px) を <see cref="Item"/> へ書き戻す。</summary>
+    public void SaveStateToItem()
+    {
+        Item.OpacityPercent = _opacityPercent;
+        Item.IsDice = _isDice;
+        if (TryGetPhysicalPosition(out var position))
+        {
+            Item.WindowPosition = position;
+        }
+    }
+
+    /// <summary>ウィンドウの現在の左上位置を物理px (仮想スクリーン座標) で取得する。</summary>
+    private bool TryGetPhysicalPosition(out Point position)
+    {
+        position = default;
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero || !User32.GetWindowRect(hwnd, out var rect))
+        {
+            return false;
+        }
+        position = new Point(rect.Left, rect.Top);
+        return true;
     }
 
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
 
-        // キャプチャ元と同じ位置・等倍サイズで配置する (SPEC 4.4)。
-        // 混在 DPI 環境でも正確に重なるよう、物理座標で直接配置する (SPEC-v1.x 2.4)
+        // 復元されたスクラップは前回の表示位置を優先し、なければキャプチャ元と同じ位置に置く。
+        // 混在 DPI 環境でも正確に重なるよう、物理座標で直接配置する (SPEC 4.4 / SPEC-v1.x 2.4)
+        int posX = Item.WindowPosition is { } p ? (int)p.X : _physicalRect.X;
+        int posY = Item.WindowPosition is { } q ? (int)q.Y : _physicalRect.Y;
+
         var hwnd = new WindowInteropHelper(this).Handle;
         bool placed = User32.SetWindowPos(hwnd, IntPtr.Zero,
-            _physicalRect.X, _physicalRect.Y, _physicalRect.Width, _physicalRect.Height,
+            posX, posY, _physicalRect.Width, _physicalRect.Height,
             User32.SWP_NOZORDER | User32.SWP_NOACTIVATE);
 
         var dpi = VisualTreeHelper.GetDpi(this);
@@ -115,17 +147,30 @@ public partial class ScrapWindow : Window, IScrapView
             // WM_DPICHANGED による WPF 側の再配置で位置がずれないよう再固定する
             Width = _physicalRect.Width / dpi.DpiScaleX;
             Height = _physicalRect.Height / dpi.DpiScaleY;
-            User32.SetWindowPos(hwnd, IntPtr.Zero, _physicalRect.X, _physicalRect.Y, 0, 0,
+            User32.SetWindowPos(hwnd, IntPtr.Zero, posX, posY, 0, 0,
                 User32.SWP_NOZORDER | User32.SWP_NOACTIVATE | User32.SWP_NOSIZE);
         }
         else
         {
             // 物理座標での配置に失敗した場合は WPF の DIP 配置へフォールバックする。
             // 混在 DPI では厳密には重ならないが、付箋を確実に画面へ出すことを優先する
-            Left = _physicalRect.X / dpi.DpiScaleX;
-            Top = _physicalRect.Y / dpi.DpiScaleY;
+            Left = posX / dpi.DpiScaleX;
+            Top = posY / dpi.DpiScaleY;
             Width = _physicalRect.Width / dpi.DpiScaleX;
             Height = _physicalRect.Height / dpi.DpiScaleY;
+        }
+
+        // 保存済みのモニタ構成と変わり画面外に出る場合は、表示中のモニタ内へクランプする
+        // (サイコロ復元と同じ処理。SPEC-v1.5 2.4)
+        if (Item.WindowPosition is not null)
+        {
+            ClampIntoCurrentMonitor();
+        }
+
+        // サイコロ状態で保存されていれば、その姿で復元する
+        if (Item.IsDice && !_isDice)
+        {
+            ToggleDice();
         }
     }
 

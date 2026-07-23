@@ -38,19 +38,36 @@ public class ScrapItemTests
     }
 
     [Fact]
-    public void 引数4つのコンストラクタは渡した値をそのまま保持する()
+    public void 復元用コンストラクタは渡した値をそのまま保持する()
     {
-        // M16 の復元で Id / CapturedAt を指定して再構築するための経路
+        // M16 の復元で Id / CapturedAt を指定して再構築するための経路。画像は遅延ローダーで後付け
         var id = Guid.NewGuid();
-        var image = MakeImage();
         var rect = new Int32Rect(1, 2, 3, 4);
         var capturedAt = new DateTimeOffset(2026, 7, 23, 10, 0, 0, TimeSpan.FromHours(9));
 
-        var item = new ScrapItem(id, image, rect, capturedAt);
+        var item = new ScrapItem(id, rect, capturedAt);
 
         Assert.Equal(id, item.Id);
-        Assert.Same(image, item.Image);
         Assert.Equal(rect, item.PhysicalRect);
         Assert.Equal(capturedAt, item.CapturedAt);
+        Assert.False(item.IsImageLoaded);
+    }
+
+    [Fact]
+    public void 遅延ローダーはImage初回参照でだけ実行される()
+    {
+        var image = MakeImage();
+        int calls = 0;
+        var item = new ScrapItem(Guid.NewGuid(), new Int32Rect(0, 0, 1, 1), DateTimeOffset.Now);
+        item.SetImageLoader(() => { calls++; return image; });
+
+        Assert.False(item.IsImageLoaded);
+        var first = item.Image;
+        var second = item.Image;
+
+        Assert.Same(image, first);
+        Assert.Same(image, second);
+        Assert.Equal(1, calls); // 初回のみロード
+        Assert.True(item.IsImageLoaded);
     }
 }

@@ -12,7 +12,6 @@ namespace SnapTack.Models;
 public sealed class SettingsStore
 {
     private const string SettingsFileName = "settings.json";
-    private const string AppDataFolderName = "SnapTack";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -25,13 +24,9 @@ public sealed class SettingsStore
 
     public SettingsStore()
     {
-        // single-file publish でも exe の場所を指すよう ProcessPath を使う
-        string exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
-        _primaryPath = Path.Combine(exeDir, SettingsFileName);
-        _fallbackPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            AppDataFolderName,
-            SettingsFileName);
+        // 保存先の規則は StorageLocation に集約 (scraps/ と同じ判定を使う)
+        _primaryPath = Path.Combine(StorageLocation.PrimaryDirectory, SettingsFileName);
+        _fallbackPath = Path.Combine(StorageLocation.FallbackDirectory, SettingsFileName);
     }
 
     /// <summary>設定を読み込む。ファイルがない・読めない・壊れている場合は既定値を返す。</summary>

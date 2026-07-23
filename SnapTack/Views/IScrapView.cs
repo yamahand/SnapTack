@@ -29,4 +29,7 @@ public interface IScrapView
 
     /// <summary>ウィンドウを最前面へ持ってくる。戻り値は <see cref="System.Windows.Window.Activate"/> に準ずる。</summary>
     bool Activate();
+
+    /// <summary>現在の表示状態 (不透明度・サイコロ・位置) を <see cref="Item"/> へ書き戻す (終了時の保存用)。</summary>
+    void SaveStateToItem();
 }

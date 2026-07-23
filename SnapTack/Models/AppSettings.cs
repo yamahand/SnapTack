@@ -47,6 +47,12 @@ public class AppSettings
     /// <summary>ゴミ箱 (Trashed) の最大保持数。既定 50 (SPEC-v1.5 2.4)。</summary>
     public int MaxTrashedScraps { get; set; } = 50;
 
+    /// <summary>ゴミ箱の保持日数。経過分は自動削除する。0 で無期限保持 (SPEC-v1.5 2.4)。</summary>
+    public int TrashRetentionDays { get; set; } = 30;
+
+    /// <summary>起動時に Pinned のスクラップを画面へ復元するか (SPEC-v1.5 2.5)。</summary>
+    public bool RestoreScrapsOnStartup { get; set; } = true;
+
     /// <summary>スクラップリストの一覧レイアウト。既定はサムネイルのグリッド。</summary>
     public ScrapListLayout ScrapListLayout { get; set; } = ScrapListLayout.Grid;
 
