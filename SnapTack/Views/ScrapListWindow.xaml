@@ -14,11 +14,10 @@
                     BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}"
                     BorderThickness="1" CornerRadius="4">
                 <StackPanel>
+                    <!-- 中央クロップ: 固定サイズの Border でクリップし、Image を UniformToFill で埋める。
+                         ImageBrush への直接バインドは DataContext を継承できず警告が出るため Image を使う -->
                     <Border Width="96" Height="96" HorizontalAlignment="Center" ClipToBounds="True">
-                        <Border.Background>
-                            <ImageBrush ImageSource="{Binding Thumbnail}" Stretch="UniformToFill"
-                                        AlignmentX="Center" AlignmentY="Center" />
-                        </Border.Background>
+                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
                     </Border>
                     <TextBlock Text="{Binding SizeText}" HorizontalAlignment="Center"
                                Margin="0,4,0,0" FontSize="11" />
@@ -37,10 +36,7 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Border Grid.Column="0" Width="48" Height="48" ClipToBounds="True">
-                    <Border.Background>
-                        <ImageBrush ImageSource="{Binding Thumbnail}" Stretch="UniformToFill"
-                                    AlignmentX="Center" AlignmentY="Center" />
-                    </Border.Background>
+                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
                 </Border>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
                     <TextBlock Text="{Binding CapturedAtText}" />
@@ -82,6 +78,7 @@
                      SelectionMode="Extended"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      HorizontalContentAlignment="Stretch"
+                     VerticalContentAlignment="Center"
                      KeyDown="OnListKeyDown"
                      MouseDoubleClick="OnListMouseDoubleClick" />
             <TextBlock x:Name="EmptyText"
