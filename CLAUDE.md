@@ -35,11 +35,13 @@ tests/SnapTack.Tests/   xUnit
 
 ## 重要な設計判断
 
-### 付箋ウィンドウは自己完結させる
+### 付箋は `ScrapManager` が中央管理する
 
-`ScrapWindow` は生成後に App 側が参照を保持しない。全部閉じても `ShutdownMode=OnExplicitShutdown` で常駐は続く。
+付箋の生成・破棄・コレクション管理は `Models/ScrapManager.cs` に集約する(M13 で移行済み、`docs/SPEC-v1.5.md` 3.1)。`ScrapWindow` は `ScrapItem` を表示するビューに位置づけ、生成後は `ScrapManager` が参照を保持する。全部閉じても `ShutdownMode=OnExplicitShutdown` で常駐は続く。
 
-この設計は **v1.5 の M13 (スクラップリスト) で `ScrapManager` へ移行する予定**(`docs/SPEC-v1.5.md` 3.1)。**M13 に着手するまでは App から付箋を一括操作する機能を足さないこと**(言語切替の即時反映を表示中の付箋に及ぼさないのもこの理由)。
+> 旧設計では `ScrapWindow` を自己完結させ App 側で参照を持たなかった。スクラップリスト(一括操作)に中央管理が要るため M13 でこの制約を解除した。
+
+言語切替の即時反映は**今も表示中の付箋には及ぼさない**(付箋は生成時の言語で確定する)。中央管理に変わっても、この挙動は維持する。
 
 ### キャプチャのフリーズ方式
 

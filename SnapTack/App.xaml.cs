@@ -22,6 +22,7 @@ public partial class App : Application
 
     private readonly SettingsService _settings = new(new SettingsStore());
     private readonly CaptureController _capture = new(new GdiScreenCapturer());
+    private ScrapManager? _scraps;
 
     private Mutex? _mutex;
     private TrayIcon? _trayIcon;
@@ -45,9 +46,10 @@ public partial class App : Application
         // UI を作る前に言語を確定させる。トレイメニューは生成時に文字列が確定するため順序が重要
         LanguageService.Apply(_settings.Current.Language);
 
-        // 付箋は自己完結させ、App 側で参照は保持しない (全部閉じても OnExplicitShutdown なので継続する)
-        _capture.SelectionCompleted += (image, physicalRect) =>
-            new ScrapWindow(image, physicalRect, _settings).Show();
+        // 付箋の生成・管理は ScrapManager に集約する (SPEC-v1.5 3.1)。
+        // 全部閉じても OnExplicitShutdown なので常駐は継続する
+        _scraps = new ScrapManager(_settings);
+        _capture.SelectionCompleted += (image, physicalRect) => _scraps.Add(image, physicalRect);
 
         _trayIcon = new TrayIcon(_settings.Current.GetHotkeyDisplayText());
         _trayIcon.CaptureRequested += OnCaptureRequested;
