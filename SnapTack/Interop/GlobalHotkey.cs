@@ -12,9 +12,10 @@ public sealed class GlobalHotkey : IDisposable
 {
     private const int WM_HOTKEY = 0x0312;
 
-    // ホットキー ID はインスタンスごとに一意にする。複数の GlobalHotkey を同時登録
-    // (キャプチャ用とスクラップリスト用) しても衝突しないようにするため (M15)。
-    // WM_HOTKEY の wParam と照合して自分宛てだけを処理する
+    // ホットキー ID はインスタンスごとに一意にする (M15)。各インスタンスは専用のメッセージ専用
+    // ウィンドウ (HwndSource) を持ち、RegisterHotKey の ID は HWND ごとにスコープされるため、
+    // 別インスタンス同士は固定 ID でも衝突しない。一意化はその前提が崩れた場合 (将来 1 つの HWND を
+    // 共有する等) への保険。WM_HOTKEY の wParam と照合して自分宛てだけを処理する
     private static int _nextHotkeyId;
     private readonly int _hotkeyId = Interlocked.Increment(ref _nextHotkeyId);
 

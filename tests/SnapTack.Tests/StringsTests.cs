@@ -91,7 +91,8 @@ public class StringsTests
     [Fact]
     public void ホットキー登録失敗メッセージに書式指定子が残っている()
     {
-        // {0} を落とすと string.Format でホットキー名が消える。両言語で確認する
+        // {0}=ホットキー名、{1}=代替手段の案内文。どちらを落としても string.Format が
+        // 実行時 FormatException を投げる (引数を渡しているのに書式指定子が無い)。両言語で確認する
         foreach (string culture in new[] { "en", "ja" })
         {
             var text = Manager.GetString("HotkeyRegisterFailedFormat", new CultureInfo(culture));
@@ -99,6 +100,7 @@ public class StringsTests
             // 「キーが無い」のか「書式指定子が消えた」のか失敗理由が分からなくなる
             Assert.NotNull(text);
             Assert.Contains("{0}", text);
+            Assert.Contains("{1}", text);
         }
     }
 

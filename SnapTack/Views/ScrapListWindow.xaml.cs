@@ -23,6 +23,11 @@ public partial class ScrapListWindow : Window
     private readonly ScrapManager _manager;
     private readonly SettingsService _settings;
 
+    // ScrapItem ごとの表示ラッパーをキャッシュする。サムネイルは元画像から決まり不変なので、
+    // Refresh のたびに作り直すと縮小デコードが再発生して重くなる (一括操作で顕著)。
+    // 同一インスタンスを再利用することで選択状態の維持もしやすくなる
+    private readonly Dictionary<ScrapItem, ScrapListItem> _itemCache = [];
+
     public ScrapListWindow(ScrapManager manager, SettingsService settings)
     {
         InitializeComponent();
@@ -94,14 +99,47 @@ public partial class ScrapListWindow : Window
     /// <summary>現在のタブの内容でリストを再構築する。</summary>
     private void Refresh()
     {
+        // 操作 (Show/Stash/Trash/Delete) で ItemsSource を差し替えても選択が飛ばないよう、
+        // 現在の選択スクラップを控えて再構築後に復元する
+        var previouslySelected = SelectedScraps().ToHashSet();
+
         var source = IsTrashTab ? _manager.TrashedScraps : _manager.ActiveScraps;
-        // 新しい順に見せる (最近のものを上/先頭に)
-        var items = source.Reverse().Select(i => new ScrapListItem(i)).ToList();
+        // 新しい順に見せる (最近のものを上/先頭に)。表示ラッパーはキャッシュから再利用する
+        var items = source.Reverse().Select(GetListItem).ToList();
+
+        PruneCache();
         ItemsList.ItemsSource = items;
+
+        // 再構築後もまだ存在するスクラップの選択を復元する
+        foreach (var listItem in items.Where(x => previouslySelected.Contains(x.Item)))
+        {
+            ItemsList.SelectedItems.Add(listItem);
+        }
 
         bool empty = items.Count == 0;
         EmptyText.Text = IsTrashTab ? Strings.TrashEmptyText : Strings.ScrapsEmptyText;
         EmptyText.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>スクラップの表示ラッパーをキャッシュ経由で取得する (サムネイルの再デコードを避ける)。</summary>
+    private ScrapListItem GetListItem(ScrapItem item)
+    {
+        if (!_itemCache.TryGetValue(item, out var listItem))
+        {
+            listItem = new ScrapListItem(item);
+            _itemCache[item] = listItem;
+        }
+        return listItem;
+    }
+
+    /// <summary>Manager から消えたスクラップのキャッシュを捨てる (無制限に溜めない)。</summary>
+    private void PruneCache()
+    {
+        var alive = _manager.Items.ToHashSet();
+        foreach (var gone in _itemCache.Keys.Where(k => !alive.Contains(k)).ToList())
+        {
+            _itemCache.Remove(gone);
+        }
     }
 
     private IReadOnlyList<ScrapItem> SelectedScraps() =>
