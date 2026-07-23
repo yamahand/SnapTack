@@ -22,6 +22,7 @@ public partial class App : Application
 
     private readonly SettingsService _settings = new(new SettingsStore());
     private readonly CaptureController _capture = new(new GdiScreenCapturer());
+    private ScrapManager? _scraps;
 
     private Mutex? _mutex;
     private TrayIcon? _trayIcon;
@@ -45,9 +46,10 @@ public partial class App : Application
         // UI を作る前に言語を確定させる。トレイメニューは生成時に文字列が確定するため順序が重要
         LanguageService.Apply(_settings.Current.Language);
 
-        // 付箋は自己完結させ、App 側で参照は保持しない (全部閉じても OnExplicitShutdown なので継続する)
-        _capture.SelectionCompleted += (image, physicalRect) =>
-            new ScrapWindow(image, physicalRect, _settings).Show();
+        // 付箋の生成・管理は ScrapManager に集約する (SPEC-v1.5 3.1)。
+        // 全部閉じても OnExplicitShutdown なので常駐は継続する
+        _scraps = new ScrapManager(_settings);
+        _capture.SelectionCompleted += (image, physicalRect) => _scraps.Add(image, physicalRect);
 
         _trayIcon = new TrayIcon(_settings.Current.GetHotkeyDisplayText());
         _trayIcon.CaptureRequested += OnCaptureRequested;
@@ -129,8 +131,8 @@ public partial class App : Application
                     // 言語の反映も含めて先に通知しておく (メッセージ自体は変更前の言語で出る)
                     MessageBox.Show(Strings.SettingsSaveFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
-                // 言語を反映してからメニューを作り直す。既存の付箋は生成時の言語のまま
-                // (付箋は App 側で参照を保持しない自己完結設計のため。SPEC-v1.x)
+                // 言語を反映してからメニューを作り直す。既存の付箋は生成時の言語で確定するため
+                // 表示中のものには反映しない (ScrapManager で中央管理後もこの挙動は維持。SPEC-v1.5 3.1)
                 LanguageService.Apply(_settings.Current.Language);
                 _trayIcon?.RebuildMenu(_settings.Current.GetHotkeyDisplayText());
             }

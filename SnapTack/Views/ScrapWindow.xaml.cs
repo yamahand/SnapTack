@@ -14,8 +14,8 @@ using SnapTack.Resources;
 namespace SnapTack.Views;
 
 /// <summary>
-/// 付箋(スクラップ)ウィンドウ。
-/// 生成後は自己完結し、App 側でのリスト管理は行わない (v2.0 のスクラップリスト実装時に再設計)。
+/// 付箋(スクラップ)ウィンドウ。<see cref="ScrapItem"/> を表示するビュー。
+/// 生成・破棄のライフサイクルは <see cref="Models.ScrapManager"/> が管理する (SPEC-v1.5 3.1)。
 /// </summary>
 public partial class ScrapWindow : Window
 {
@@ -36,6 +36,9 @@ public partial class ScrapWindow : Window
     private readonly SettingsService _settings;
     private readonly List<MenuItem> _opacityPresetItems = [];
 
+    /// <summary>このウィンドウが表示しているスクラップ。<see cref="Models.ScrapManager"/> が識別に使う。</summary>
+    public ScrapItem Item { get; }
+
     private int _opacityPercent = OpacityMaxPercent; // 新規付箋は常に 100% (SPEC-v1.x 2.2)
     private bool _isDice;
     private MenuItem? _diceMenuItem;
@@ -45,14 +48,15 @@ public partial class ScrapWindow : Window
     // これにより「移動を伴わないクリック」のみがダブルクリック判定に残る (SPEC-v1.x 4)
     private Point? _leftButtonDownDip;
 
-    public ScrapWindow(BitmapSource image, Int32Rect physicalRect, SettingsService settings)
+    public ScrapWindow(ScrapItem item, SettingsService settings)
     {
         InitializeComponent();
-        _image = image;
-        _physicalRect = physicalRect;
+        Item = item;
+        _image = item.Image;
+        _physicalRect = item.PhysicalRect;
         _settings = settings;
-        ScrapImage.Source = image;
-        DiceBrush.ImageSource = image;
+        ScrapImage.Source = _image;
+        DiceBrush.ImageSource = _image;
         ContextMenu = BuildContextMenu();
         SetOpacityPercent(_opacityPercent);
     }
