@@ -70,6 +70,60 @@ public class ScrapManagerTests
     }
 
     [Fact]
+    public void ActiveScrapsとTrashedScrapsが状態で振り分けられる()
+    {
+        var (m, views) = NewManager();
+        var pinned = Add(m);
+        var stashed = Add(m);
+        var trashed = Add(m);
+        views[stashed].UserStash();
+        views[trashed].UserTrash();
+
+        Assert.Equal(new[] { pinned, stashed }, m.ActiveScraps.ToArray());
+        Assert.Equal(new[] { trashed }, m.TrashedScraps.ToArray());
+    }
+
+    [Fact]
+    public void Deleteでコレクションから完全に消える()
+    {
+        var (m, views) = NewManager();
+        var item = Add(m);
+        views[item].UserTrash();
+
+        m.Delete(item);
+
+        Assert.DoesNotContain(item, m.Items);
+        Assert.Empty(m.TrashedScraps);
+    }
+
+    [Fact]
+    public void 状態変更でChangedが発火する()
+    {
+        var (m, views) = NewManager();
+        int changes = 0;
+        m.Changed += (_, _) => changes++;
+
+        var item = Add(m);   // +1
+        views[item].UserStash(); // +1
+        m.Show(item);        // +1
+        m.Trash(item);       // +1
+        m.Delete(item);      // +1
+
+        Assert.Equal(5, changes);
+    }
+
+    [Fact]
+    public void IsShownは表示中だけtrueを返す()
+    {
+        var (m, views) = NewManager();
+        var item = Add(m);
+        Assert.True(m.IsShown(item));
+
+        views[item].UserStash();
+        Assert.False(m.IsShown(item));
+    }
+
+    [Fact]
     public void 閉じる要求でTrashedになりウィンドウが閉じる()
     {
         var (m, views) = NewManager();

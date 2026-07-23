@@ -11,7 +11,12 @@ namespace SnapTack.Interop;
 public sealed class GlobalHotkey : IDisposable
 {
     private const int WM_HOTKEY = 0x0312;
-    private const int HotkeyId = 1;
+
+    // ホットキー ID はインスタンスごとに一意にする。複数の GlobalHotkey を同時登録
+    // (キャプチャ用とスクラップリスト用) しても衝突しないようにするため (M15)。
+    // WM_HOTKEY の wParam と照合して自分宛てだけを処理する
+    private static int _nextHotkeyId;
+    private readonly int _hotkeyId = Interlocked.Increment(ref _nextHotkeyId);
 
     private const uint MOD_ALT = 0x0001;
     private const uint MOD_CONTROL = 0x0002;
@@ -76,7 +81,7 @@ public sealed class GlobalHotkey : IDisposable
         {
             return false;
         }
-        _registered = RegisterHotKey(_source.Handle, HotkeyId, fsModifiers, vk);
+        _registered = RegisterHotKey(_source.Handle, _hotkeyId, fsModifiers, vk);
         return _registered;
     }
 
@@ -93,14 +98,14 @@ public sealed class GlobalHotkey : IDisposable
     {
         if (_registered)
         {
-            UnregisterHotKey(_source.Handle, HotkeyId);
+            UnregisterHotKey(_source.Handle, _hotkeyId);
             _registered = false;
         }
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == WM_HOTKEY && wParam.ToInt32() == HotkeyId)
+        if (msg == WM_HOTKEY && wParam.ToInt32() == _hotkeyId)
         {
             Pressed?.Invoke(this, EventArgs.Empty);
             handled = true;

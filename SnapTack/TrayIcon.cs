@@ -19,6 +19,9 @@ public sealed class TrayIcon : IDisposable
     /// <summary>メニューの「キャプチャ」またはアイコンのダブルクリックで発火する。</summary>
     public event EventHandler? CaptureRequested;
 
+    /// <summary>メニューの「スクラップリスト」で発火する。</summary>
+    public event EventHandler? ScrapListRequested;
+
     /// <summary>メニューの「設定」で発火する。</summary>
     public event EventHandler? SettingsRequested;
 
@@ -46,6 +49,10 @@ public sealed class TrayIcon : IDisposable
         var captureItem = new ToolStripMenuItem(string.Format(Strings.MenuCaptureTextFormat, hotkeyDisplayText));
         captureItem.Click += (_, _) => CaptureRequested?.Invoke(this, EventArgs.Empty);
         menu.Items.Add(captureItem);
+
+        var scrapListItem = new ToolStripMenuItem(Strings.MenuScrapListText);
+        scrapListItem.Click += (_, _) => ScrapListRequested?.Invoke(this, EventArgs.Empty);
+        menu.Items.Add(scrapListItem);
 
         var settingsItem = new ToolStripMenuItem(Strings.MenuSettingsText);
         settingsItem.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);

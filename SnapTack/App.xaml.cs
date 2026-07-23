@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Input;
 using SnapTack.Capture;
 using SnapTack.Interop;
 using SnapTack.Models;
@@ -32,8 +33,10 @@ public partial class App : Application
 
     private Mutex? _mutex;
     private TrayIcon? _trayIcon;
-    private GlobalHotkey? _hotkey;
+    private GlobalHotkey? _hotkey;          // キャプチャ用
+    private GlobalHotkey? _scrapListHotkey; // スクラップリスト用 (M15)
     private SettingsWindow? _settingsWindow;
+    private ScrapListWindow? _scrapListWindow;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -59,15 +62,19 @@ public partial class App : Application
 
         _trayIcon = new TrayIcon(_settings.Current.GetHotkeyDisplayText());
         _trayIcon.CaptureRequested += OnCaptureRequested;
+        _trayIcon.ScrapListRequested += OnScrapListRequested;
         _trayIcon.SettingsRequested += OnSettingsRequested;
         _trayIcon.ExitRequested += (_, _) => ShutdownApp();
 
         // OS のログオフ・シャットダウンでも終了中フラグを立てておく (付箋が閉じをブロックしないよう)
         SessionEnding += (_, _) => IsShuttingDown = true;
 
+        // キャプチャ用とスクラップリスト用の 2 つのホットキーを同時登録する (M15)
         _hotkey = new GlobalHotkey();
         _hotkey.Pressed += OnCaptureRequested;
-        RegisterHotkeyOrWarn();
+        _scrapListHotkey = new GlobalHotkey();
+        _scrapListHotkey.Pressed += OnScrapListRequested;
+        RegisterHotkeysOrWarn();
     }
 
     /// <summary>終了中フラグを立ててからシャットダウンする。付箋の閉じがゴミ箱行きへ委譲されないようにする。</summary>
@@ -82,6 +89,9 @@ public partial class App : Application
         _hotkey?.Dispose();
         _hotkey = null;
 
+        _scrapListHotkey?.Dispose();
+        _scrapListHotkey = null;
+
         _trayIcon?.Dispose();
         _trayIcon = null;
 
@@ -95,17 +105,30 @@ public partial class App : Application
         base.OnExit(e);
     }
 
-    /// <summary>現在の設定でホットキーを登録し、失敗したら警告して継続する (SPEC 4.2)。</summary>
-    private void RegisterHotkeyOrWarn()
+    /// <summary>現在の設定で 2 つのホットキーを登録し、失敗したものだけ警告して継続する (SPEC 4.2)。</summary>
+    private void RegisterHotkeysOrWarn()
     {
-        if (_hotkey is null)
+        // 失敗時の案内はホットキーの用途ごとに変える (キャプチャ / スクラップリスト)
+        RegisterHotkeyOrWarn(_hotkey, _settings.Current.HotkeyModifiers, _settings.Current.HotkeyKey,
+            _settings.Current.GetHotkeyDisplayText(), Strings.HotkeyFallbackCaptureText);
+        RegisterHotkeyOrWarn(_scrapListHotkey,
+            _settings.Current.ScrapListHotkeyModifiers, _settings.Current.ScrapListHotkeyKey,
+            AppSettings.FormatHotkey(_settings.Current.ScrapListHotkeyModifiers, _settings.Current.ScrapListHotkeyKey),
+            Strings.HotkeyFallbackScrapListText);
+    }
+
+    /// <summary>指定ホットキーを登録し、失敗したら用途に応じた案内で警告して継続する。</summary>
+    private static void RegisterHotkeyOrWarn(GlobalHotkey? hotkey, ModifierKeys modifiers, Key key,
+        string displayText, string fallbackText)
+    {
+        if (hotkey is null)
         {
             return;
         }
-        if (!_hotkey.Register(_settings.Current.HotkeyModifiers, _settings.Current.HotkeyKey))
+        if (!hotkey.Register(modifiers, key))
         {
             MessageBox.Show(
-                string.Format(Strings.HotkeyRegisterFailedFormat, _settings.Current.GetHotkeyDisplayText()),
+                string.Format(Strings.HotkeyRegisterFailedFormat, displayText, fallbackText),
                 AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
@@ -153,8 +176,26 @@ public partial class App : Application
                 _trayIcon?.RebuildMenu(_settings.Current.GetHotkeyDisplayText());
             }
             // 保存・キャンセルどちらでも、現在の設定で即時再登録する
-            RegisterHotkeyOrWarn();
+            RegisterHotkeysOrWarn();
         };
+        window.Show();
+    }
+
+    /// <summary>スクラップリストを開く。既に開いていれば新規生成せずアクティブ化する (SPEC-v1.5 2.2)。</summary>
+    private void OnScrapListRequested(object? sender, EventArgs e)
+    {
+        if (_scrapListWindow is not null)
+        {
+            _scrapListWindow.Activate();
+            return;
+        }
+        if (_scraps is null)
+        {
+            return;
+        }
+        var window = new ScrapListWindow(_scraps, _settings);
+        _scrapListWindow = window;
+        window.Closed += (_, _) => _scrapListWindow = null;
         window.Show();
     }
 }

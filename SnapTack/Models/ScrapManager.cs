@@ -42,6 +42,23 @@ public sealed class ScrapManager
     public IReadOnlyList<ScrapItem> Items => _items.AsReadOnly();
 
     /// <summary>
+    /// コレクションまたはいずれかのスクラップの状態が変化したときに発火する。
+    /// 開いているスクラップリストが表示を更新するために購読する (M15)。
+    /// </summary>
+    public event EventHandler? Changed;
+
+    /// <summary>スクラップ (Pinned + Stashed) を追加順に返す。一覧の「スクラップ」タブ用。</summary>
+    public IEnumerable<ScrapItem> ActiveScraps =>
+        _items.Where(i => i.State is ScrapState.Pinned or ScrapState.Stashed);
+
+    /// <summary>ゴミ箱 (Trashed) を追加順に返す。一覧の「ゴミ箱」タブ用。</summary>
+    public IEnumerable<ScrapItem> TrashedScraps =>
+        _items.Where(i => i.State == ScrapState.Trashed);
+
+    /// <summary>スクラップが表示中 (付箋ウィンドウが開いている) かどうか。</summary>
+    public bool IsShown(ScrapItem item) => _views.ContainsKey(item);
+
+    /// <summary>
     /// キャプチャ結果から新しいスクラップを作り、付箋 (Pinned) として画面に表示する。
     /// 現行のキャプチャ→付箋の体験をそのまま踏襲する。
     /// </summary>
@@ -51,6 +68,7 @@ public sealed class ScrapManager
         _items.Add(item);
         ShowView(item);
         EnforceLimits();
+        RaiseChanged();
         return item;
     }
 
@@ -60,6 +78,7 @@ public sealed class ScrapManager
         SetState(item, ScrapState.Pinned);
         ShowView(item);
         EnforceLimits();
+        RaiseChanged();
     }
 
     /// <summary>スクラップをリストに隠す (Stashed へ)。ウィンドウは閉じるがデータは残す (SPEC-v1.5 2.3)。</summary>
@@ -70,6 +89,7 @@ public sealed class ScrapManager
         // Trashed → Stashed はアクティブ (Pinned+Stashed) を増やすため上限を超え得る。
         // Pinned → Stashed では合計が変わらないが、区別せず一律にチェックする
         EnforceLimits();
+        RaiseChanged();
     }
 
     /// <summary>スクラップをゴミ箱へ移す (Trashed へ)。破棄せず復元できる状態にする (SPEC-v1.5 2.3)。</summary>
@@ -78,7 +98,17 @@ public sealed class ScrapManager
         SetState(item, ScrapState.Trashed);
         CloseView(item);
         EnforceLimits();
+        RaiseChanged();
     }
+
+    /// <summary>スクラップを完全に削除する (ゴミ箱内での「完全に削除」。SPEC-v1.5 2.2)。</summary>
+    public void Delete(ScrapItem item)
+    {
+        Remove(item);
+        RaiseChanged();
+    }
+
+    private void RaiseChanged() => Changed?.Invoke(this, EventArgs.Empty);
 
     /// <summary>
     /// 状態を遷移させ、<see cref="ScrapItem.TrashedAt"/> の不変条件を保つ。

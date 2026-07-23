@@ -153,12 +153,68 @@
   <data name="HotkeyRegisterFailedFormat" xml:space="preserve">
     <value>ホットキー ({0}) の登録に失敗しました。
 他のアプリと競合している可能性があります。
-トレイメニューからのキャプチャは引き続き使用できます。</value>
+{1}</value>
+  </data>
+  <data name="HotkeyFallbackCaptureText" xml:space="preserve">
+    <value>トレイメニューからのキャプチャは引き続き使用できます。</value>
+  </data>
+  <data name="HotkeyFallbackScrapListText" xml:space="preserve">
+    <value>トレイメニューからスクラップリストを開けます。</value>
   </data>
   <data name="CaptureFailedMessage" xml:space="preserve">
     <value>画面のキャプチャに失敗しました。</value>
   </data>
   <data name="SettingsSaveFailedMessage" xml:space="preserve">
     <value>設定ファイルの保存に失敗しました。設定は次回起動時に元に戻ります。</value>
+  </data>
+
+  <!-- ===== スクラップリスト (ScrapListWindow / TrayIcon) ===== -->
+  <data name="MenuScrapListText" xml:space="preserve">
+    <value>スクラップリスト(&amp;L)</value>
+  </data>
+  <data name="ScrapListTitle" xml:space="preserve">
+    <value>スクラップリスト</value>
+  </data>
+  <data name="ScrapsTabText" xml:space="preserve">
+    <value>スクラップ</value>
+  </data>
+  <data name="TrashTabText" xml:space="preserve">
+    <value>ゴミ箱</value>
+  </data>
+  <data name="ScrapsEmptyText" xml:space="preserve">
+    <value>スクラップはまだありません。キャプチャすると、ここに追加されます。</value>
+  </data>
+  <data name="TrashEmptyText" xml:space="preserve">
+    <value>ゴミ箱は空です。</value>
+  </data>
+  <data name="ListMenuShowText" xml:space="preserve">
+    <value>画面に表示</value>
+  </data>
+  <data name="ListMenuHideText" xml:space="preserve">
+    <value>画面から隠す</value>
+  </data>
+  <data name="ListMenuTrashText" xml:space="preserve">
+    <value>ゴミ箱へ移動</value>
+  </data>
+  <data name="ListMenuRestoreText" xml:space="preserve">
+    <value>復元</value>
+  </data>
+  <data name="ListMenuDeleteText" xml:space="preserve">
+    <value>完全に削除</value>
+  </data>
+  <data name="DeleteConfirmFormat" xml:space="preserve">
+    <value>選択した {0} 件のスクラップを完全に削除しますか?この操作は元に戻せません。</value>
+  </data>
+  <data name="StatePinnedText" xml:space="preserve">
+    <value>画面に表示中</value>
+  </data>
+  <data name="StateStashedText" xml:space="preserve">
+    <value>非表示</value>
+  </data>
+  <data name="LayoutGridText" xml:space="preserve">
+    <value>グリッド</value>
+  </data>
+  <data name="LayoutListText" xml:space="preserve">
+    <value>リスト</value>
   </data>
 </root>
