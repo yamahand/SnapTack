@@ -111,6 +111,18 @@ public sealed class ScrapStoreTests : IDisposable
     }
 
     [Fact]
+    public void 書き込み不可なディレクトリではSaveがfalseを返す()
+    {
+        // ディレクトリを作れない状況を作る: 同名のファイルを置いておくと CreateDirectory が失敗する
+        string blocked = Path.Combine(_dir, "blocked");
+        File.WriteAllText(blocked, "not a directory");
+        var store = new ScrapStore(blocked);
+
+        Assert.False(store.SaveImage(NewScrap()));
+        Assert.False(store.SaveIndex(new[] { NewScrap() }));
+    }
+
+    [Fact]
     public void DeleteImageで画像ファイルが消える()
     {
         var store = NewStore();

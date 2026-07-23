@@ -60,6 +60,9 @@ public sealed class ScrapStore
         {
             return [];
         }
+        // 実データを読んだディレクトリを以後の書き込み・削除でも使う。primary が存在するが
+        // 書き込み不可で fallback から読んだ場合でも、DeleteImage が正しい側を指すようにする
+        _resolvedDir = dir;
 
         ScrapIndex? index;
         try
@@ -202,12 +205,24 @@ public sealed class ScrapStore
 
     // ===== ディレクトリ解決 =====
 
-    /// <summary>読み込み用: 既に存在する scraps ディレクトリを返す (primary 優先)。無ければ primary。</summary>
+    /// <summary>
+    /// 読み込み用: 実データ (index.json) を持つ scraps ディレクトリを返す (primary 優先)。
+    /// index がどちらにも無ければ、存在するディレクトリ → primary の順で返す。
+    /// </summary>
     private string ExistingDirectory()
     {
         if (_resolvedDir is not null)
         {
             return _resolvedDir;
+        }
+        // index.json を持つ側を優先する (primary が空でも fallback に実データがあれば拾う)
+        if (File.Exists(Path.Combine(_primaryDir, IndexFileName)))
+        {
+            return _primaryDir;
+        }
+        if (File.Exists(Path.Combine(_fallbackDir, IndexFileName)))
+        {
+            return _fallbackDir;
         }
         if (Directory.Exists(_primaryDir))
         {

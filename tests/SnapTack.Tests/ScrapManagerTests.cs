@@ -378,6 +378,27 @@ public class ScrapManagerTests : IDisposable
     }
 
     [Fact]
+    public void 復元時に上限を超えていればトリミングされる()
+    {
+        // セッション間で MaxScraps を下げた状況を模す。まず上限ゆるめで 3 件 Stashed を保存
+        var store = NewStore();
+        var (m, views) = NewManager(settings: new AppSettings { MaxScraps = 10 }, store: store);
+        var a = Add(m);
+        var b = Add(m);
+        var c = Add(m);
+        views[a].UserStash();
+        views[b].UserStash();
+        views[c].UserStash();
+
+        // 上限 2 で復元 → 最古の Stashed 1 件 (a) がトリミングされる
+        var (m2, _) = NewManager(settings: new AppSettings { MaxScraps = 2 }, store: NewStore());
+        m2.RestoreFromDisk();
+
+        Assert.Equal(2, m2.Items.Count);
+        Assert.DoesNotContain(m2.Items, i => i.Id == a.Id);
+    }
+
+    [Fact]
     public void 保持日数0なら期限切れ削除しない()
     {
         var store = NewStore();

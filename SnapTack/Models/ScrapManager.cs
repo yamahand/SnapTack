@@ -222,9 +222,15 @@ public sealed class ScrapManager
         _items.Clear();
         _items.AddRange(restored);
 
-        // 期限切れのゴミ箱を消す。この時点で index を書き直す (画像欠落分の除去も兼ねる)
+        // 期限切れのゴミ箱を消す。
         bool removedExpired = PurgeExpiredTrash();
-        if (indexNeedsRewrite || removedExpired)
+        // セッション間で上限を下げていた場合など、index が上限超なら復元時にもトリミングする
+        // (Pinned は削除しない挙動は EnforceLimits 内で維持。SPEC-v1.5 2.4)
+        int before = _items.Count;
+        EnforceLimits();
+        bool trimmed = _items.Count != before;
+        // 画像欠落・期限切れ・上限トリミングのいずれかで index の内容が変わったら書き直す
+        if (indexNeedsRewrite || removedExpired || trimmed)
         {
             SaveIndex();
         }
