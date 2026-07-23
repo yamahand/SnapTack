@@ -38,8 +38,8 @@ public sealed class ScrapManager
         _viewFactory = viewFactory;
     }
 
-    /// <summary>管理下の全スクラップ (追加順)。</summary>
-    public IReadOnlyList<ScrapItem> Items => _items;
+    /// <summary>管理下の全スクラップ (追加順)。呼び出し側からの変更を防ぐ読み取り専用ビュー。</summary>
+    public IReadOnlyList<ScrapItem> Items => _items.AsReadOnly();
 
     /// <summary>
     /// キャプチャ結果から新しいスクラップを作り、付箋 (Pinned) として画面に表示する。
@@ -67,7 +67,9 @@ public sealed class ScrapManager
     {
         SetState(item, ScrapState.Stashed);
         CloseView(item);
-        // Pinned → Stashed は Pinned+Stashed の合計を変えないため、ここでの上限超過は起きない
+        // Trashed → Stashed はアクティブ (Pinned+Stashed) を増やすため上限を超え得る。
+        // Pinned → Stashed では合計が変わらないが、区別せず一律にチェックする
+        EnforceLimits();
     }
 
     /// <summary>スクラップをゴミ箱へ移す (Trashed へ)。破棄せず復元できる状態にする (SPEC-v1.5 2.3)。</summary>

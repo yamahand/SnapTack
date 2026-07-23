@@ -24,6 +24,12 @@ public partial class App : Application
     private readonly CaptureController _capture = new(new GdiScreenCapturer());
     private ScrapManager? _scraps;
 
+    /// <summary>
+    /// アプリ終了処理中かどうか。付箋ウィンドウは終了時の閉じをゴミ箱行きへ委譲せず
+    /// そのまま閉じる必要があるため参照する (SPEC-v1.5 2.6。終了 = 破棄ではなく状態保存)。
+    /// </summary>
+    public static bool IsShuttingDown { get; private set; }
+
     private Mutex? _mutex;
     private TrayIcon? _trayIcon;
     private GlobalHotkey? _hotkey;
@@ -54,11 +60,21 @@ public partial class App : Application
         _trayIcon = new TrayIcon(_settings.Current.GetHotkeyDisplayText());
         _trayIcon.CaptureRequested += OnCaptureRequested;
         _trayIcon.SettingsRequested += OnSettingsRequested;
-        _trayIcon.ExitRequested += (_, _) => Shutdown();
+        _trayIcon.ExitRequested += (_, _) => ShutdownApp();
+
+        // OS のログオフ・シャットダウンでも終了中フラグを立てておく (付箋が閉じをブロックしないよう)
+        SessionEnding += (_, _) => IsShuttingDown = true;
 
         _hotkey = new GlobalHotkey();
         _hotkey.Pressed += OnCaptureRequested;
         RegisterHotkeyOrWarn();
+    }
+
+    /// <summary>終了中フラグを立ててからシャットダウンする。付箋の閉じがゴミ箱行きへ委譲されないようにする。</summary>
+    private void ShutdownApp()
+    {
+        IsShuttingDown = true;
+        Shutdown();
     }
 
     protected override void OnExit(ExitEventArgs e)

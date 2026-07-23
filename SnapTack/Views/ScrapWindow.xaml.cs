@@ -84,10 +84,11 @@ public partial class ScrapWindow : Window, IScrapView
     /// OS/ユーザー由来の閉じ (Alt+F4、タスク一覧からの閉じ等) をゴミ箱行きへ委譲する (SPEC-v1.5 2.3)。
     /// これらは意図イベントを経由しないため、放置すると State が Pinned のまま表示だけ消え、
     /// 永続化 (M16) 時に「Pinned なのに窓が無い」不整合になる。Manager 由来の閉じはそのまま通す。
+    /// ただしアプリ終了中は委譲するとシャットダウンをブロックするため、そのまま閉じる (SPEC-v1.5 2.6)。
     /// </summary>
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        if (!_closingByManager)
+        if (!_closingByManager && !App.IsShuttingDown)
         {
             e.Cancel = true;
             TrashRequested?.Invoke(this, EventArgs.Empty);

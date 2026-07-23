@@ -172,6 +172,38 @@ public class ScrapManagerTests
     }
 
     [Fact]
+    public void Trashedから隠すとアクティブ上限チェックが走る()
+    {
+        // Trashed → Stashed は Pinned+Stashed を +1 するため、上限超過なら削除が走るべき。
+        // 途中の各 Add はアクティブが上限を超えないよう組み、削除は最後の Stash でのみ起きるようにする
+        var settings = new AppSettings { MaxScraps = 2 };
+        var (m, views) = NewManager(settings);
+
+        var a = Add(m);            // a: Pinned  (アクティブ 1)
+        var b = Add(m);            // b: Pinned  (アクティブ 2、上限ちょうど)
+        views[b].UserTrash();      // b: Trashed (アクティブ 1)
+        views[a].UserStash();      // a: Stashed (アクティブ 1、以後の削除候補)
+        var c = Add(m);            // c: Pinned  (アクティブ 2 = a,c。上限ちょうどで削除は起きない)
+
+        m.Stash(b);                // b: Trashed → Stashed。アクティブ 3 → 最古の Stashed = a を削除
+
+        Assert.DoesNotContain(a, m.Items);
+        Assert.Equal(ScrapState.Stashed, b.State);
+        Assert.Null(b.TrashedAt);
+        Assert.Contains(c, m.Items);
+    }
+
+    [Fact]
+    public void Itemsは読み取り専用で外部から変更できない()
+    {
+        var (m, _) = NewManager();
+        Add(m);
+
+        // 内部 List へキャストして変更できないこと (AsReadOnly のラッパーが返る)
+        Assert.IsNotType<List<ScrapItem>>(m.Items);
+    }
+
+    [Fact]
     public void Pinnedは上限を超えても削除されない()
     {
         var settings = new AppSettings { MaxScraps = 1 };
