@@ -26,6 +26,12 @@ public class AppSettings
     /// <summary>UI 言語。既定は Auto (OS の表示言語に従う)。</summary>
     public AppLanguage Language { get; set; } = AppLanguage.Auto;
 
+    /// <summary>スクラップの最大保持数 (Pinned + Stashed)。既定 200 (SPEC-v1.5 2.4)。</summary>
+    public int MaxScraps { get; set; } = 200;
+
+    /// <summary>ゴミ箱 (Trashed) の最大保持数。既定 50 (SPEC-v1.5 2.4)。</summary>
+    public int MaxTrashedScraps { get; set; } = 50;
+
     /// <summary>浅いコピーを返す。設定画面が一部項目だけ書き換える際に使う。</summary>
     public AppSettings Clone() => (AppSettings)MemberwiseClone();
 

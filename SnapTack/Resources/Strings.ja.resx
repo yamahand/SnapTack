@@ -78,6 +78,9 @@
   <data name="MenuCopyGestureText" xml:space="preserve">
     <value>Ctrl+C</value>
   </data>
+  <data name="MenuStashText" xml:space="preserve">
+    <value>リストに隠す</value>
+  </data>
   <data name="MenuCloseText" xml:space="preserve">
     <value>閉じる</value>
   </data>

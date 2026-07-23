@@ -82,6 +82,9 @@
   <data name="MenuCopyGestureText" xml:space="preserve">
     <value>Ctrl+C</value>
   </data>
+  <data name="MenuStashText" xml:space="preserve">
+    <value>Hide to list</value>
+  </data>
   <data name="MenuCloseText" xml:space="preserve">
     <value>Close</value>
   </data>
