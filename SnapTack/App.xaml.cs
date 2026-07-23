@@ -131,8 +131,8 @@ public partial class App : Application
                     // 言語の反映も含めて先に通知しておく (メッセージ自体は変更前の言語で出る)
                     MessageBox.Show(Strings.SettingsSaveFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
-                // 言語を反映してからメニューを作り直す。既存の付箋は生成時の言語のまま
-                // (付箋は App 側で参照を保持しない自己完結設計のため。SPEC-v1.x)
+                // 言語を反映してからメニューを作り直す。既存の付箋は生成時の言語で確定するため
+                // 表示中のものには反映しない (ScrapManager で中央管理後もこの挙動は維持。SPEC-v1.5 3.1)
                 LanguageService.Apply(_settings.Current.Language);
                 _trayIcon?.RebuildMenu(_settings.Current.GetHotkeyDisplayText());
             }
