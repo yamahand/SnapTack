@@ -57,8 +57,10 @@ public partial class App : Application
 
         // 付箋の生成・管理は ScrapManager に集約する (SPEC-v1.5 3.1)。
         // 全部閉じても OnExplicitShutdown なので常駐は継続する
-        _scraps = new ScrapManager(_settings);
+        _scraps = new ScrapManager(_settings, new ScrapStore());
         _capture.SelectionCompleted += (image, physicalRect) => _scraps.Add(image, physicalRect);
+        // 保存済みスクラップを復元する (Pinned を画面へ、期限切れゴミ箱を掃除)。SPEC-v1.5 2.4
+        _scraps.RestoreFromDisk();
 
         _trayIcon = new TrayIcon(_settings.Current.GetHotkeyDisplayText());
         _trayIcon.CaptureRequested += OnCaptureRequested;
@@ -86,6 +88,10 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        // 表示中だった付箋の最終位置などを保存する。各ウィンドウは閉じる際に Item へ
+        // 書き戻し済みなので、ここでは index を確定させる (SPEC-v1.5 2.6)
+        _scraps?.SaveAll();
+
         _hotkey?.Dispose();
         _hotkey = null;
 
@@ -193,6 +199,9 @@ public partial class App : Application
         {
             return;
         }
+        // 長時間起動しっぱなしでもゴミ箱が肥大しないよう、開くたびに期限切れを掃除する (SPEC-v1.5 6)
+        _scraps.OnScrapListOpened();
+
         var window = new ScrapListWindow(_scraps, _settings);
         _scrapListWindow = window;
         window.Closed += (_, _) => _scrapListWindow = null;

@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -7,15 +8,26 @@ using Xunit;
 
 namespace SnapTack.Tests;
 
-/// <summary>スクラップの状態遷移・二重表示防止・上限管理 (SPEC-v1.5 2.1/2.3/2.4) の検証。</summary>
-public class ScrapManagerTests
+/// <summary>スクラップの状態遷移・二重表示防止・上限管理・永続化 (SPEC-v1.5 2.1/2.3/2.4) の検証。</summary>
+public class ScrapManagerTests : IDisposable
 {
+    private readonly string _tempDir =
+        Path.Combine(Path.GetTempPath(), "SnapTackManagerTests", Guid.NewGuid().ToString("N"));
+
+    public void Dispose()
+    {
+        try { Directory.Delete(_tempDir, recursive: true); } catch (IOException) { }
+    }
+
+    private ScrapStore NewStore() => new(_tempDir);
+
     /// <summary>実ウィンドウの代わりに使うテスト用ビュー。表示状態と発火した意図を記録する。</summary>
     private sealed class FakeView : IScrapView
     {
         public ScrapItem Item { get; }
         public bool IsOpen { get; private set; } = true;
         public int ActivateCount { get; private set; }
+        public int SaveStateCount { get; private set; }
 
         public event EventHandler? TrashRequested;
         public event EventHandler? StashRequested;
@@ -25,6 +37,7 @@ public class ScrapManagerTests
 
         public void Show() => IsOpen = true;
         public bool Activate() { ActivateCount++; return true; }
+        public void SaveStateToItem() => SaveStateCount++;
 
         public void Close()
         {
@@ -42,7 +55,8 @@ public class ScrapManagerTests
         BitmapSource.Create(1, 1, 96, 96, PixelFormats.Bgr24, null, new byte[] { 0, 0, 0 }, 3);
 
     /// <summary>生成した FakeView を後から参照できる Manager を組み立てる。</summary>
-    private static (ScrapManager Manager, Dictionary<ScrapItem, FakeView> Views) NewManager(AppSettings? settings = null)
+    private static (ScrapManager Manager, Dictionary<ScrapItem, FakeView> Views) NewManager(
+        AppSettings? settings = null, ScrapStore? store = null)
     {
         var views = new Dictionary<ScrapItem, FakeView>();
         var service = new SettingsService(settings ?? new AppSettings());
@@ -51,7 +65,7 @@ public class ScrapManagerTests
             var view = new FakeView(item);
             views[item] = view;
             return view;
-        });
+        }, store);
         return (manager, views);
     }
 
@@ -292,5 +306,111 @@ public class ScrapManagerTests
         Assert.DoesNotContain(a, m.Items);
         Assert.Contains(b, m.Items);
         Assert.Contains(c, m.Items);
+    }
+
+    // ===== 永続化 (M16) =====
+
+    [Fact]
+    public void 追加したスクラップが別Managerで復元される()
+    {
+        var store = NewStore();
+        var (m, _) = NewManager(store: store);
+        var added = Add(m);
+        m.Stash(added); // Stashed で保存されること
+
+        // 別 Manager (再起動相当) で読み直す
+        var (m2, _) = NewManager(store: NewStore());
+        m2.RestoreFromDisk();
+
+        var one = Assert.Single(m2.Items);
+        Assert.Equal(added.Id, one.Id);
+        Assert.Equal(ScrapState.Stashed, one.State);
+    }
+
+    [Fact]
+    public void Deleteすると復元されない()
+    {
+        var store = NewStore();
+        var (m, views) = NewManager(store: store);
+        var keep = Add(m);
+        var gone = Add(m);
+        views[gone].UserTrash();
+        m.Delete(gone);
+
+        var (m2, _) = NewManager(store: NewStore());
+        m2.RestoreFromDisk();
+
+        var one = Assert.Single(m2.Items);
+        Assert.Equal(keep.Id, one.Id);
+    }
+
+    [Fact]
+    public void 復元時にRestoreScrapsOnStartupがfalseならPinnedを表示しない()
+    {
+        var store = NewStore();
+        var (m, _) = NewManager(store: store);
+        Add(m); // Pinned で保存
+
+        var settings = new AppSettings { RestoreScrapsOnStartup = false };
+        var (m2, views2) = NewManager(settings, NewStore());
+        m2.RestoreFromDisk();
+
+        // データは復元されるが、画面 (ビュー) は開かれない
+        Assert.Single(m2.Items);
+        Assert.Empty(views2);
+    }
+
+    [Fact]
+    public void 期限切れのゴミ箱は起動時に削除される()
+    {
+        var store = NewStore();
+        var (m, views) = NewManager(settings: new AppSettings { TrashRetentionDays = 30 }, store: store);
+        var item = Add(m);
+        views[item].UserTrash();
+        // 保持期間を過ぎた過去日時に偽装する
+        item.TrashedAt = DateTimeOffset.Now - TimeSpan.FromDays(31);
+        m.SaveAll(); // 偽装した TrashedAt を index に反映
+
+        var (m2, _) = NewManager(settings: new AppSettings { TrashRetentionDays = 30 }, store: NewStore());
+        m2.RestoreFromDisk();
+
+        Assert.Empty(m2.Items);
+    }
+
+    [Fact]
+    public void 復元時に上限を超えていればトリミングされる()
+    {
+        // セッション間で MaxScraps を下げた状況を模す。まず上限ゆるめで 3 件 Stashed を保存
+        var store = NewStore();
+        var (m, views) = NewManager(settings: new AppSettings { MaxScraps = 10 }, store: store);
+        var a = Add(m);
+        var b = Add(m);
+        var c = Add(m);
+        views[a].UserStash();
+        views[b].UserStash();
+        views[c].UserStash();
+
+        // 上限 2 で復元 → 最古の Stashed 1 件 (a) がトリミングされる
+        var (m2, _) = NewManager(settings: new AppSettings { MaxScraps = 2 }, store: NewStore());
+        m2.RestoreFromDisk();
+
+        Assert.Equal(2, m2.Items.Count);
+        Assert.DoesNotContain(m2.Items, i => i.Id == a.Id);
+    }
+
+    [Fact]
+    public void 保持日数0なら期限切れ削除しない()
+    {
+        var store = NewStore();
+        var (m, views) = NewManager(settings: new AppSettings { TrashRetentionDays = 0 }, store: store);
+        var item = Add(m);
+        views[item].UserTrash();
+        item.TrashedAt = DateTimeOffset.Now - TimeSpan.FromDays(9999);
+        m.SaveAll();
+
+        var (m2, _) = NewManager(settings: new AppSettings { TrashRetentionDays = 0 }, store: NewStore());
+        m2.RestoreFromDisk();
+
+        Assert.Single(m2.Items); // 無期限保持
     }
 }
