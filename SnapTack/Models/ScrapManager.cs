@@ -57,11 +57,7 @@ public sealed class ScrapManager
     /// <summary>スクラップを画面に表示する (Pinned へ)。閉じていたウィンドウを開き直す用途も兼ねる。</summary>
     public void Show(ScrapItem item)
     {
-        if (item.State == ScrapState.Trashed)
-        {
-            item.TrashedAt = null;
-        }
-        item.State = ScrapState.Pinned;
+        SetState(item, ScrapState.Pinned);
         ShowView(item);
         EnforceLimits();
     }
@@ -69,7 +65,7 @@ public sealed class ScrapManager
     /// <summary>スクラップをリストに隠す (Stashed へ)。ウィンドウは閉じるがデータは残す (SPEC-v1.5 2.3)。</summary>
     public void Stash(ScrapItem item)
     {
-        item.State = ScrapState.Stashed;
+        SetState(item, ScrapState.Stashed);
         CloseView(item);
         // Pinned → Stashed は Pinned+Stashed の合計を変えないため、ここでの上限超過は起きない
     }
@@ -77,10 +73,20 @@ public sealed class ScrapManager
     /// <summary>スクラップをゴミ箱へ移す (Trashed へ)。破棄せず復元できる状態にする (SPEC-v1.5 2.3)。</summary>
     public void Trash(ScrapItem item)
     {
-        item.State = ScrapState.Trashed;
-        item.TrashedAt = DateTimeOffset.Now;
+        SetState(item, ScrapState.Trashed);
         CloseView(item);
         EnforceLimits();
+    }
+
+    /// <summary>
+    /// 状態を遷移させ、<see cref="ScrapItem.TrashedAt"/> の不変条件を保つ。
+    /// Trashed へ入る時のみ日時を打ち、Trashed から離れる時は必ず null に戻す
+    /// (Stashed など Trashed 以外では null であるべき。SPEC-v1.5 2.4 の自動削除判定が誤らないよう)。
+    /// </summary>
+    private static void SetState(ScrapItem item, ScrapState next)
+    {
+        item.TrashedAt = next == ScrapState.Trashed ? DateTimeOffset.Now : null;
+        item.State = next;
     }
 
     /// <summary>ゴミ箱・退避中のスクラップを画面に戻す (Pinned へ)。<see cref="Show"/> と同義。</summary>

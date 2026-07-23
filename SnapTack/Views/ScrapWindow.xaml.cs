@@ -45,6 +45,9 @@ public partial class ScrapWindow : Window, IScrapView
     /// <summary>このウィンドウが表示しているスクラップ。<see cref="Models.ScrapManager"/> が識別に使う。</summary>
     public ScrapItem Item { get; }
 
+    // Manager が明示的に閉じる時だけ true。OS/ユーザー由来の閉じ (Alt+F4 等) と区別する
+    private bool _closingByManager;
+
     private int _opacityPercent = OpacityMaxPercent; // 新規付箋は常に 100% (SPEC-v1.x 2.2)
     private bool _isDice;
     private MenuItem? _diceMenuItem;
@@ -65,6 +68,32 @@ public partial class ScrapWindow : Window, IScrapView
         DiceBrush.ImageSource = _image;
         ContextMenu = BuildContextMenu();
         SetOpacityPercent(_opacityPercent);
+    }
+
+    /// <summary>
+    /// Manager からの明示的な閉じ。フラグを立ててから閉じることで、
+    /// <see cref="OnClosing"/> がこれを「ユーザー由来の閉じ」と誤認しないようにする。
+    /// </summary>
+    void IScrapView.Close()
+    {
+        _closingByManager = true;
+        Close();
+    }
+
+    /// <summary>
+    /// OS/ユーザー由来の閉じ (Alt+F4、タスク一覧からの閉じ等) をゴミ箱行きへ委譲する (SPEC-v1.5 2.3)。
+    /// これらは意図イベントを経由しないため、放置すると State が Pinned のまま表示だけ消え、
+    /// 永続化 (M16) 時に「Pinned なのに窓が無い」不整合になる。Manager 由来の閉じはそのまま通す。
+    /// </summary>
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        if (!_closingByManager)
+        {
+            e.Cancel = true;
+            TrashRequested?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+        base.OnClosing(e);
     }
 
     protected override void OnSourceInitialized(EventArgs e)

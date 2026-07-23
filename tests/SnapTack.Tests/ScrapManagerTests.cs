@@ -112,6 +112,21 @@ public class ScrapManagerTests
     }
 
     [Fact]
+    public void Trashedから隠すとTrashedAtがクリアされる()
+    {
+        // TrashedAt は Trashed のときのみ非 null という不変条件を保つ (SPEC-v1.5 2.4)
+        var (m, views) = NewManager();
+        var item = Add(m);
+        views[item].UserTrash();
+        Assert.NotNull(item.TrashedAt);
+
+        m.Stash(item);
+
+        Assert.Equal(ScrapState.Stashed, item.State);
+        Assert.Null(item.TrashedAt);
+    }
+
+    [Fact]
     public void 表示中のスクラップを再表示しても新規生成せずアクティブ化する()
     {
         var (m, views) = NewManager();
