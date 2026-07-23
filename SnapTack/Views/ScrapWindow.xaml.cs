@@ -17,8 +17,14 @@ namespace SnapTack.Views;
 /// 付箋(スクラップ)ウィンドウ。<see cref="ScrapItem"/> を表示するビュー。
 /// 生成・破棄のライフサイクルは <see cref="Models.ScrapManager"/> が管理する (SPEC-v1.5 3.1)。
 /// </summary>
-public partial class ScrapWindow : Window
+public partial class ScrapWindow : Window, IScrapView
 {
+    /// <summary>ユーザーが「閉じる」(中クリック・メニュー) を要求した。ゴミ箱へ移す意図 (SPEC-v1.5 2.3)。</summary>
+    public event EventHandler? TrashRequested;
+
+    /// <summary>ユーザーが「リストに隠す」を要求した。Stashed へ移す意図 (SPEC-v1.5 2.3)。</summary>
+    public event EventHandler? StashRequested;
+
     // 言語非依存の文字列。翻訳対象は Resources/Strings.resx を参照
     private const string AppName = "SnapTack";
     private const string SaveFileNameFormat = "SnapTack_{0:yyyyMMdd_HHmmss}.png";
@@ -38,6 +44,9 @@ public partial class ScrapWindow : Window
 
     /// <summary>このウィンドウが表示しているスクラップ。<see cref="Models.ScrapManager"/> が識別に使う。</summary>
     public ScrapItem Item { get; }
+
+    // Manager が明示的に閉じる時だけ true。OS/ユーザー由来の閉じ (Alt+F4 等) と区別する
+    private bool _closingByManager;
 
     private int _opacityPercent = OpacityMaxPercent; // 新規付箋は常に 100% (SPEC-v1.x 2.2)
     private bool _isDice;
@@ -59,6 +68,33 @@ public partial class ScrapWindow : Window
         DiceBrush.ImageSource = _image;
         ContextMenu = BuildContextMenu();
         SetOpacityPercent(_opacityPercent);
+    }
+
+    /// <summary>
+    /// Manager からの明示的な閉じ。フラグを立ててから閉じることで、
+    /// <see cref="OnClosing"/> がこれを「ユーザー由来の閉じ」と誤認しないようにする。
+    /// </summary>
+    void IScrapView.Close()
+    {
+        _closingByManager = true;
+        Close();
+    }
+
+    /// <summary>
+    /// OS/ユーザー由来の閉じ (Alt+F4、タスク一覧からの閉じ等) をゴミ箱行きへ委譲する (SPEC-v1.5 2.3)。
+    /// これらは意図イベントを経由しないため、放置すると State が Pinned のまま表示だけ消え、
+    /// 永続化 (M16) 時に「Pinned なのに窓が無い」不整合になる。Manager 由来の閉じはそのまま通す。
+    /// ただしアプリ終了中は委譲するとシャットダウンをブロックするため、そのまま閉じる (SPEC-v1.5 2.6)。
+    /// </summary>
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        if (!_closingByManager && !App.IsShuttingDown)
+        {
+            e.Cancel = true;
+            TrashRequested?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+        base.OnClosing(e);
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -93,7 +129,7 @@ public partial class ScrapWindow : Window
         }
     }
 
-    /// <summary>コンテキストメニュー: コピー / PNG保存 / 閉じる (SPEC 4.4 + SPEC-v1.x 2.1)。</summary>
+    /// <summary>コンテキストメニュー: コピー / PNG保存 / 隠す / 閉じる (SPEC 4.4 + SPEC-v1.5 2.3)。</summary>
     private ContextMenu BuildContextMenu()
     {
         var copyItem = new MenuItem { Header = Strings.MenuCopyText, InputGestureText = Strings.MenuCopyGestureText };
@@ -116,8 +152,14 @@ public partial class ScrapWindow : Window
         _diceMenuItem = new MenuItem { Header = Strings.MenuDiceText, InputGestureText = Strings.MenuDiceGestureText };
         _diceMenuItem.Click += (_, _) => ToggleDice();
 
+        // リストに隠す (Stashed へ)。データは残し、ウィンドウだけ閉じる (SPEC-v1.5 2.3)
+        var stashItem = new MenuItem { Header = Strings.MenuStashText };
+        stashItem.Click += (_, _) => StashRequested?.Invoke(this, EventArgs.Empty);
+
+        // 閉じる = ゴミ箱へ。破棄ではなく Trashed へ移す (SPEC-v1.5 2.3)。
+        // 実際にウィンドウを閉じるのは Manager 側 (状態を確定してから閉じる)
         var closeItem = new MenuItem { Header = Strings.MenuCloseText, InputGestureText = Strings.MenuCloseGestureText };
-        closeItem.Click += (_, _) => Close();
+        closeItem.Click += (_, _) => TrashRequested?.Invoke(this, EventArgs.Empty);
 
         var menu = new ContextMenu();
         menu.Items.Add(copyItem);
@@ -125,6 +167,7 @@ public partial class ScrapWindow : Window
         menu.Items.Add(opacityItem);
         menu.Items.Add(_diceMenuItem);
         menu.Items.Add(new Separator());
+        menu.Items.Add(stashItem);
         menu.Items.Add(closeItem);
         return menu;
     }
@@ -243,7 +286,8 @@ public partial class ScrapWindow : Window
     {
         if (e.ChangedButton == MouseButton.Middle)
         {
-            Close();
+            // 中クリックで閉じる = ゴミ箱へ。破棄せず Trashed へ移す (SPEC-v1.5 2.3)
+            TrashRequested?.Invoke(this, EventArgs.Empty);
         }
     }
 

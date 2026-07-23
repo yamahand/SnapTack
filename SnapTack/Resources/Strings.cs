@@ -32,6 +32,7 @@ internal static class Strings
     // ===== 付箋のコンテキストメニュー (ScrapWindow.xaml.cs) =====
     public static string MenuCopyText => Get(nameof(MenuCopyText));
     public static string MenuCopyGestureText => Get(nameof(MenuCopyGestureText));
+    public static string MenuStashText => Get(nameof(MenuStashText));
     public static string MenuCloseText => Get(nameof(MenuCloseText));
     public static string MenuCloseGestureText => Get(nameof(MenuCloseGestureText));
     public static string MenuSavePngText => Get(nameof(MenuSavePngText));
