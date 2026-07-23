@@ -11,7 +11,13 @@ namespace SnapTack.Interop;
 public sealed class GlobalHotkey : IDisposable
 {
     private const int WM_HOTKEY = 0x0312;
-    private const int HotkeyId = 1;
+
+    // ホットキー ID はインスタンスごとに一意にする (M15)。各インスタンスは専用のメッセージ専用
+    // ウィンドウ (HwndSource) を持ち、RegisterHotKey の ID は HWND ごとにスコープされるため、
+    // 別インスタンス同士は固定 ID でも衝突しない。一意化はその前提が崩れた場合 (将来 1 つの HWND を
+    // 共有する等) への保険。WM_HOTKEY の wParam と照合して自分宛てだけを処理する
+    private static int _nextHotkeyId;
+    private readonly int _hotkeyId = Interlocked.Increment(ref _nextHotkeyId);
 
     private const uint MOD_ALT = 0x0001;
     private const uint MOD_CONTROL = 0x0002;
@@ -76,7 +82,7 @@ public sealed class GlobalHotkey : IDisposable
         {
             return false;
         }
-        _registered = RegisterHotKey(_source.Handle, HotkeyId, fsModifiers, vk);
+        _registered = RegisterHotKey(_source.Handle, _hotkeyId, fsModifiers, vk);
         return _registered;
     }
 
@@ -93,14 +99,14 @@ public sealed class GlobalHotkey : IDisposable
     {
         if (_registered)
         {
-            UnregisterHotKey(_source.Handle, HotkeyId);
+            UnregisterHotKey(_source.Handle, _hotkeyId);
             _registered = false;
         }
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == WM_HOTKEY && wParam.ToInt32() == HotkeyId)
+        if (msg == WM_HOTKEY && wParam.ToInt32() == _hotkeyId)
         {
             Pressed?.Invoke(this, EventArgs.Empty);
             handled = true;
