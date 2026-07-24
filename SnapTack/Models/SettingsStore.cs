@@ -12,7 +12,6 @@ namespace SnapTack.Models;
 public sealed class SettingsStore
 {
     private const string SettingsFileName = "settings.json";
-    private const string AppDataFolderName = "SnapTack";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -25,13 +24,9 @@ public sealed class SettingsStore
 
     public SettingsStore()
     {
-        // single-file publish でも exe の場所を指すよう ProcessPath を使う
-        string exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
-        _primaryPath = Path.Combine(exeDir, SettingsFileName);
-        _fallbackPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            AppDataFolderName,
-            SettingsFileName);
+        // 保存先の規則は StorageLocation に集約 (scraps/ と同じ判定を使う)
+        _primaryPath = Path.Combine(StorageLocation.PrimaryDirectory, SettingsFileName);
+        _fallbackPath = Path.Combine(StorageLocation.FallbackDirectory, SettingsFileName);
     }
 
     /// <summary>設定を読み込む。ファイルがない・読めない・壊れている場合は既定値を返す。</summary>
@@ -43,7 +38,7 @@ public sealed class SettingsStore
             {
                 if (File.Exists(path))
                 {
-                    var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path), JsonOptions);
+                    var settings = Deserialize(File.ReadAllText(path));
                     if (settings is not null)
                     {
                         return settings;
@@ -57,6 +52,13 @@ public sealed class SettingsStore
         }
         return new AppSettings();
     }
+
+    /// <summary>
+    /// JSON 文字列を <see cref="AppSettings"/> に変換する (テストから直接検証するため internal)。
+    /// v1.4 以前のように v1.5 のキーが無い JSON でも、欠けたキーは既定値で補われる (SPEC-v1.5 4)。
+    /// </summary>
+    internal static AppSettings? Deserialize(string json) =>
+        JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
 
     /// <summary>設定を保存する。両方の保存先に失敗した場合は false を返す。</summary>
     public bool Save(AppSettings settings)

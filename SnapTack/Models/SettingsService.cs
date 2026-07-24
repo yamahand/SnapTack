@@ -17,8 +17,18 @@ public sealed class SettingsService
         Current = store.Load();
     }
 
+    /// <summary>
+    /// あらかじめ用意した設定で初期化する (テスト用)。ディスクには触れず、
+    /// <see cref="Save"/> / <see cref="Replace"/> は保存先が無いため false を返す。
+    /// </summary>
+    internal SettingsService(AppSettings settings)
+    {
+        _store = null!;
+        Current = settings;
+    }
+
     /// <summary>現在の設定を永続化する。失敗時は false(呼び出し側で通知の要否を判断する)。</summary>
-    public bool Save() => _store.Save(Current);
+    public bool Save() => _store?.Save(Current) ?? false;
 
     /// <summary>設定を差し替えて永続化する。</summary>
     public bool Replace(AppSettings settings)

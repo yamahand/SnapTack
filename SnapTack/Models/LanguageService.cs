@@ -19,20 +19,23 @@ public static class LanguageService
     /// <summary>設定の言語を現在のスレッドと以降の新規スレッドへ適用する。</summary>
     public static void Apply(AppLanguage language)
     {
-        // Auto は起動時の UI カルチャへ戻す。English/Japanese から Auto へ戻す場合に
-        // 上書き済みの CurrentUICulture を参照しないよう、スナップショットを使う
-        var culture = ToCulture(language) ?? StartupUICulture;
+        var culture = Resolve(language, StartupUICulture);
 
         // DefaultThreadCurrentUICulture だけでは実行中のスレッドに効かないため両方に設定する
         CultureInfo.DefaultThreadCurrentUICulture = culture;
         Thread.CurrentThread.CurrentUICulture = culture;
     }
 
-    /// <summary>言語に対応する UI カルチャを返す。Auto は null (呼び出し側で起動時の値を使う)。</summary>
-    private static CultureInfo? ToCulture(AppLanguage language) => language switch
+    /// <summary>
+    /// 言語に対応する UI カルチャを決める。Auto は <paramref name="startupUICulture"/> を返す。
+    /// 起動時カルチャを引数で受け取るのは、プロセス全体の状態に依存せずテストできるようにするため。
+    /// </summary>
+    internal static CultureInfo Resolve(AppLanguage language, CultureInfo startupUICulture) => language switch
     {
         AppLanguage.English => new CultureInfo("en"),
         AppLanguage.Japanese => new CultureInfo("ja"),
-        _ => null,
+        // Auto は起動時の UI カルチャへ戻す。English/Japanese から Auto へ戻す場合に
+        // 上書き済みの CurrentUICulture を参照しないよう、スナップショットを使う
+        _ => startupUICulture,
     };
 }

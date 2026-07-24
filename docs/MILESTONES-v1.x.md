@@ -2,7 +2,7 @@
 
 MILESTONES.md (M1〜M6) の続き。詳細仕様は SPEC-v1.x.md を参照。
 易→難の順に並べており、M7+M8 完了時点で v1.1、M9 で v1.2、M10 で v1.3、M12 で v1.4 をリリースできる。
-(M11 は CI 整備。`docs/MILESTONE-M11.md` を参照)
+(M11 は CI 整備。`MILESTONE-M11.md` を参照)
 
 ## M7: PNG 保存 (→ v1.1 前半)
 

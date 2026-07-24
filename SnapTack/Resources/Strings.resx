@@ -82,6 +82,9 @@
   <data name="MenuCopyGestureText" xml:space="preserve">
     <value>Ctrl+C</value>
   </data>
+  <data name="MenuStashText" xml:space="preserve">
+    <value>Hide to list</value>
+  </data>
   <data name="MenuCloseText" xml:space="preserve">
     <value>Close</value>
   </data>
@@ -137,6 +140,9 @@ Check the permissions and free space of the destination.</value>
   <data name="ModifierRequiredMessage" xml:space="preserve">
     <value>Include at least one modifier (Ctrl / Shift / Alt / Win).</value>
   </data>
+  <data name="HotkeyConflictMessage" xml:space="preserve">
+    <value>The capture and scrap list hotkeys must be different.</value>
+  </data>
   <data name="LanguageLabelText" xml:space="preserve">
     <value>Language</value>
   </data>
@@ -151,18 +157,91 @@ Check the permissions and free space of the destination.</value>
     <value>日本語</value>
     <comment>言語名は自言語表記のままにするため翻訳しない</comment>
   </data>
+  <data name="ScrapListHotkeyLabelText" xml:space="preserve">
+    <value>Scrap list hotkey</value>
+  </data>
+  <data name="MaxScrapsLabelText" xml:space="preserve">
+    <value>Max scraps to keep</value>
+  </data>
+  <data name="MaxTrashedScrapsLabelText" xml:space="preserve">
+    <value>Max items in trash</value>
+  </data>
+  <data name="TrashRetentionLabelText" xml:space="preserve">
+    <value>Auto-delete trash after (days, 0 = keep forever)</value>
+  </data>
+  <data name="RestoreOnStartupText" xml:space="preserve">
+    <value>Restore pinned scraps on startup</value>
+  </data>
 
   <!-- ===== アプリ全体のエラー (App.xaml.cs) ===== -->
   <data name="HotkeyRegisterFailedFormat" xml:space="preserve">
     <value>Failed to register the hotkey ({0}).
 It may conflict with another app.
-You can still start a capture from the tray menu.</value>
-    <comment>{0} = ホットキー表記 (例: Ctrl+Shift+Z)</comment>
+{1}</value>
+    <comment>{0} = ホットキー表記 (例: Ctrl+Shift+Z)、{1} = 代替手段の案内文</comment>
+  </data>
+  <data name="HotkeyFallbackCaptureText" xml:space="preserve">
+    <value>You can still start a capture from the tray menu.</value>
+  </data>
+  <data name="HotkeyFallbackScrapListText" xml:space="preserve">
+    <value>You can still open the scrap list from the tray menu.</value>
   </data>
   <data name="CaptureFailedMessage" xml:space="preserve">
     <value>Failed to capture the screen.</value>
   </data>
   <data name="SettingsSaveFailedMessage" xml:space="preserve">
     <value>Failed to save the settings file. The settings will revert on the next launch.</value>
+  </data>
+
+  <!-- ===== スクラップリスト (ScrapListWindow / TrayIcon) ===== -->
+  <data name="MenuScrapListText" xml:space="preserve">
+    <value>Scrap &amp;List</value>
+    <comment>トレイメニュー。&amp; はアクセスキー</comment>
+  </data>
+  <data name="ScrapListTitle" xml:space="preserve">
+    <value>Scrap List</value>
+  </data>
+  <data name="ScrapsTabText" xml:space="preserve">
+    <value>Scraps</value>
+  </data>
+  <data name="TrashTabText" xml:space="preserve">
+    <value>Trash</value>
+  </data>
+  <data name="ScrapsEmptyText" xml:space="preserve">
+    <value>No scraps yet. Capture something to add one here.</value>
+  </data>
+  <data name="TrashEmptyText" xml:space="preserve">
+    <value>Trash is empty.</value>
+  </data>
+  <data name="ListMenuShowText" xml:space="preserve">
+    <value>Show on screen</value>
+  </data>
+  <data name="ListMenuHideText" xml:space="preserve">
+    <value>Hide from screen</value>
+  </data>
+  <data name="ListMenuTrashText" xml:space="preserve">
+    <value>Move to Trash</value>
+  </data>
+  <data name="ListMenuRestoreText" xml:space="preserve">
+    <value>Restore</value>
+  </data>
+  <data name="ListMenuDeleteText" xml:space="preserve">
+    <value>Delete permanently</value>
+  </data>
+  <data name="DeleteConfirmFormat" xml:space="preserve">
+    <value>Permanently delete {0} scrap(s)? This cannot be undone.</value>
+    <comment>{0} = 選択件数</comment>
+  </data>
+  <data name="StatePinnedText" xml:space="preserve">
+    <value>On screen</value>
+  </data>
+  <data name="StateStashedText" xml:space="preserve">
+    <value>Hidden</value>
+  </data>
+  <data name="LayoutGridText" xml:space="preserve">
+    <value>Grid</value>
+  </data>
+  <data name="LayoutListText" xml:space="preserve">
+    <value>List</value>
   </data>
 </root>

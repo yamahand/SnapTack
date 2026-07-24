@@ -4,8 +4,10 @@
 
 画面の範囲キャプチャを「付箋(スクラップ)」として画面に貼る Windows 常駐ツール。SETUNA2 の後継を目指す。
 
-- 仕様: `SPEC.md` (v1.0) + `SPEC-v1.x.md` (v1.1 以降の追補)
-- 実装順: `MILESTONES.md` (M1〜M6) + `MILESTONES-v1.x.md` (M7 以降)
+開発ドキュメントは `docs/` に集約している(ルートに置くのは README と本書のみ)。
+
+- 仕様: `docs/SPEC.md` (v1.0) + `docs/SPEC-v1.x.md` (v1.1〜v1.4) + `docs/SPEC-v1.5.md` (v1.5)
+- 実装順: `docs/MILESTONES.md` (M1〜M6) + `docs/MILESTONES-v1.x.md` (M7〜M12) + `docs/MILESTONES-v1.5.md` (M13〜)
 - CI 方針: `docs/CI.md`
 
 ## 技術スタック(変更禁止)
@@ -33,11 +35,13 @@ tests/SnapTack.Tests/   xUnit
 
 ## 重要な設計判断
 
-### 付箋ウィンドウは自己完結させる
+### 付箋は `ScrapManager` が中央管理する
 
-`ScrapWindow` は生成後に App 側が参照を保持しない。全部閉じても `ShutdownMode=OnExplicitShutdown` で常駐は続く。
+付箋の生成・破棄・コレクション管理は `Models/ScrapManager.cs` に集約する(M13 で移行済み、`docs/SPEC-v1.5.md` 3.1)。`ScrapWindow` は `ScrapItem` を表示するビューに位置づけ、生成後は `ScrapManager` が参照を保持する。全部閉じても `ShutdownMode=OnExplicitShutdown` で常駐は続く。
 
-この設計は v2.0 のスクラップリスト実装時に再設計する予定。**それまでは App から付箋を一括操作する機能を足さないこと**(言語切替の即時反映を表示中の付箋に及ぼさないのもこの理由)。
+> 旧設計では `ScrapWindow` を自己完結させ App 側で参照を持たなかった。スクラップリスト(一括操作)に中央管理が要るため M13 でこの制約を解除した。
+
+言語切替の即時反映は**今も表示中の付箋には及ぼさない**(付箋は生成時の言語で確定する)。中央管理に変わっても、この挙動は維持する。
 
 ### キャプチャのフリーズ方式
 
@@ -59,6 +63,7 @@ tests/SnapTack.Tests/   xUnit
 - `Resources/Strings.cs` は**手書きのアクセサ**。VS デザイナ生成ではないので、キーを足したらこのファイルにもプロパティを追加する
   - 手書きにした理由: 生成ファイルはデザイナを開かないと更新されず、CI とローカルで差分が出るため
   - キーが無い場合は例外を投げずキー名を返す(翻訳漏れでアプリを落とさない)
+  - **`StringsTests` が「`Strings.cs` の全プロパティが両方の .resx に存在するか」を検証している**ので、追加漏れはテストで落ちる
 - 言語非依存の文字列(製品名 `SnapTack`、`"{0} × {1}"`、日付書式など)は `const` のままでよい
 
 ### 言語の適用
