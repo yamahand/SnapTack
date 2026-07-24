@@ -52,10 +52,16 @@ internal static class Strings
     public static string SaveButtonText => Get(nameof(SaveButtonText));
     public static string CancelButtonText => Get(nameof(CancelButtonText));
     public static string ModifierRequiredMessage => Get(nameof(ModifierRequiredMessage));
+    public static string HotkeyConflictMessage => Get(nameof(HotkeyConflictMessage));
     public static string LanguageLabelText => Get(nameof(LanguageLabelText));
     public static string LanguageAutoText => Get(nameof(LanguageAutoText));
     public static string LanguageEnglishText => Get(nameof(LanguageEnglishText));
     public static string LanguageJapaneseText => Get(nameof(LanguageJapaneseText));
+    public static string ScrapListHotkeyLabelText => Get(nameof(ScrapListHotkeyLabelText));
+    public static string MaxScrapsLabelText => Get(nameof(MaxScrapsLabelText));
+    public static string MaxTrashedScrapsLabelText => Get(nameof(MaxTrashedScrapsLabelText));
+    public static string TrashRetentionLabelText => Get(nameof(TrashRetentionLabelText));
+    public static string RestoreOnStartupText => Get(nameof(RestoreOnStartupText));
 
     // ===== アプリ全体のエラー (App.xaml.cs) =====
     public static string HotkeyRegisterFailedFormat => Get(nameof(HotkeyRegisterFailedFormat));

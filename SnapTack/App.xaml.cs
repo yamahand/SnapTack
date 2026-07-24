@@ -161,7 +161,9 @@ public partial class App : Application
         }
 
         // 設定中は現在のホットキーを解除し、同じ組み合わせも入力欄で押せるようにする
+        // (両ホットキーとも入力欄で取り込むため、どちらも一旦解除する)
         _hotkey?.Unregister();
+        _scrapListHotkey?.Unregister();
 
         var window = new SettingsWindow(_settings.Current);
         _settingsWindow = window;

@@ -38,7 +38,7 @@ public sealed class SettingsStore
             {
                 if (File.Exists(path))
                 {
-                    var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path), JsonOptions);
+                    var settings = Deserialize(File.ReadAllText(path));
                     if (settings is not null)
                     {
                         return settings;
@@ -52,6 +52,13 @@ public sealed class SettingsStore
         }
         return new AppSettings();
     }
+
+    /// <summary>
+    /// JSON 文字列を <see cref="AppSettings"/> に変換する (テストから直接検証するため internal)。
+    /// v1.4 以前のように v1.5 のキーが無い JSON でも、欠けたキーは既定値で補われる (SPEC-v1.5 4)。
+    /// </summary>
+    internal static AppSettings? Deserialize(string json) =>
+        JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
 
     /// <summary>設定を保存する。両方の保存先に失敗した場合は false を返す。</summary>
     public bool Save(AppSettings settings)

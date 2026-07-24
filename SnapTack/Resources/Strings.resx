@@ -140,6 +140,9 @@ Check the permissions and free space of the destination.</value>
   <data name="ModifierRequiredMessage" xml:space="preserve">
     <value>Include at least one modifier (Ctrl / Shift / Alt / Win).</value>
   </data>
+  <data name="HotkeyConflictMessage" xml:space="preserve">
+    <value>The capture and scrap list hotkeys must be different.</value>
+  </data>
   <data name="LanguageLabelText" xml:space="preserve">
     <value>Language</value>
   </data>
@@ -153,6 +156,21 @@ Check the permissions and free space of the destination.</value>
   <data name="LanguageJapaneseText" xml:space="preserve">
     <value>日本語</value>
     <comment>言語名は自言語表記のままにするため翻訳しない</comment>
+  </data>
+  <data name="ScrapListHotkeyLabelText" xml:space="preserve">
+    <value>Scrap list hotkey</value>
+  </data>
+  <data name="MaxScrapsLabelText" xml:space="preserve">
+    <value>Max scraps to keep</value>
+  </data>
+  <data name="MaxTrashedScrapsLabelText" xml:space="preserve">
+    <value>Max items in trash</value>
+  </data>
+  <data name="TrashRetentionLabelText" xml:space="preserve">
+    <value>Auto-delete trash after (days, 0 = keep forever)</value>
+  </data>
+  <data name="RestoreOnStartupText" xml:space="preserve">
+    <value>Restore pinned scraps on startup</value>
   </data>
 
   <!-- ===== アプリ全体のエラー (App.xaml.cs) ===== -->

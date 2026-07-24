@@ -136,6 +136,9 @@
   <data name="ModifierRequiredMessage" xml:space="preserve">
     <value>修飾キー (Ctrl / Shift / Alt / Win) を1つ以上含めてください。</value>
   </data>
+  <data name="HotkeyConflictMessage" xml:space="preserve">
+    <value>キャプチャとスクラップリストのホットキーは別の組み合わせにしてください。</value>
+  </data>
   <data name="LanguageLabelText" xml:space="preserve">
     <value>言語</value>
   </data>
@@ -147,6 +150,21 @@
   </data>
   <data name="LanguageJapaneseText" xml:space="preserve">
     <value>日本語</value>
+  </data>
+  <data name="ScrapListHotkeyLabelText" xml:space="preserve">
+    <value>スクラップリストのホットキー</value>
+  </data>
+  <data name="MaxScrapsLabelText" xml:space="preserve">
+    <value>スクラップの最大保持数</value>
+  </data>
+  <data name="MaxTrashedScrapsLabelText" xml:space="preserve">
+    <value>ゴミ箱の最大保持数</value>
+  </data>
+  <data name="TrashRetentionLabelText" xml:space="preserve">
+    <value>ゴミ箱の自動削除 (日数、0 で無期限保持)</value>
+  </data>
+  <data name="RestoreOnStartupText" xml:space="preserve">
+    <value>起動時に貼り付け済みのスクラップを復元する</value>
   </data>
 
   <!-- ===== アプリ全体のエラー (App.xaml.cs) ===== -->
