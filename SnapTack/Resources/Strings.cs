@@ -52,6 +52,7 @@ internal static class Strings
     public static string SaveButtonText => Get(nameof(SaveButtonText));
     public static string CancelButtonText => Get(nameof(CancelButtonText));
     public static string ModifierRequiredMessage => Get(nameof(ModifierRequiredMessage));
+    public static string HotkeyConflictMessage => Get(nameof(HotkeyConflictMessage));
     public static string LanguageLabelText => Get(nameof(LanguageLabelText));
     public static string LanguageAutoText => Get(nameof(LanguageAutoText));
     public static string LanguageEnglishText => Get(nameof(LanguageEnglishText));

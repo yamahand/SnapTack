@@ -171,6 +171,14 @@ public partial class SettingsWindow : Window
             return;
         }
 
+        // 2 つのホットキーが同一だと片方の RegisterHotkey が失敗し、汎用の登録失敗警告しか
+        // 出ずに原因が分かりにくい。保存時にここで弾いて専用メッセージで知らせる
+        if (_modifiers == _scrapListModifiers && _key == _scrapListKey)
+        {
+            MessageBox.Show(this, Strings.HotkeyConflictMessage, Strings.WindowTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         // 画面にない設定項目 (LastSaveDirectory 等) を落とさないよう、現在値のコピーへ上書きする
         var result = _current.Clone();
         result.HotkeyModifiers = _modifiers;
@@ -180,7 +188,10 @@ public partial class SettingsWindow : Window
         result.Language = SelectedLanguage;
 
         // 数値欄は空・非数字でも落ちないよう既定値へフォールバックし、下限でクランプする。
-        // 上限を 0 にすると全消えするため、保持数は最低 1 を保証する
+        // 上限を 0 にすると全消えするため、保持数は最低 1 を保証する。
+        // なお上限を下げても既存の超過分はここでは削除しない。トリミングは ScrapManager が
+        // スクラップ操作時 (追加・状態変更) に行うため、次に 1 枚追加した時点で自然に収束する。
+        // 設定変更だけでユーザーが貼った付箋を消さないための意図的な挙動 (SPEC-v1.5 2.4)
         result.MaxScraps = Math.Max(1, ParseOrDefault(MaxScrapsBox.Text, _current.MaxScraps));
         result.MaxTrashedScraps = Math.Max(0, ParseOrDefault(MaxTrashedScrapsBox.Text, _current.MaxTrashedScraps));
         result.TrashRetentionDays = Math.Max(0, ParseOrDefault(TrashRetentionBox.Text, _current.TrashRetentionDays));

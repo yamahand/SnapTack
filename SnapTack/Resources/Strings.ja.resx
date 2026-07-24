@@ -136,6 +136,9 @@
   <data name="ModifierRequiredMessage" xml:space="preserve">
     <value>修飾キー (Ctrl / Shift / Alt / Win) を1つ以上含めてください。</value>
   </data>
+  <data name="HotkeyConflictMessage" xml:space="preserve">
+    <value>キャプチャとスクラップリストのホットキーは別の組み合わせにしてください。</value>
+  </data>
   <data name="LanguageLabelText" xml:space="preserve">
     <value>言語</value>
   </data>

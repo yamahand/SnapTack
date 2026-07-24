@@ -140,6 +140,9 @@ Check the permissions and free space of the destination.</value>
   <data name="ModifierRequiredMessage" xml:space="preserve">
     <value>Include at least one modifier (Ctrl / Shift / Alt / Win).</value>
   </data>
+  <data name="HotkeyConflictMessage" xml:space="preserve">
+    <value>The capture and scrap list hotkeys must be different.</value>
+  </data>
   <data name="LanguageLabelText" xml:space="preserve">
     <value>Language</value>
   </data>
