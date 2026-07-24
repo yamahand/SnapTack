@@ -6,7 +6,7 @@
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="True">
-    <StackPanel Margin="24" MinWidth="320">
+    <StackPanel Margin="24" MinWidth="360">
         <TextBlock x:Name="HotkeyLabel" Margin="0,0,0,8" />
         <TextBox x:Name="HotkeyBox"
                  IsReadOnly="True"
@@ -15,6 +15,23 @@
                  PreviewKeyDown="OnHotkeyBoxPreviewKeyDown"
                  PreviewTextInput="OnHotkeyBoxPreviewTextInput" />
         <TextBlock x:Name="HotkeyHint" Margin="0,8,0,0" FontSize="12" Opacity="0.7" TextWrapping="Wrap" />
+        <TextBlock x:Name="ScrapListHotkeyLabel" Margin="0,20,0,8" />
+        <TextBox x:Name="ScrapListHotkeyBox"
+                 IsReadOnly="True"
+                 IsReadOnlyCaretVisible="False"
+                 Cursor="Arrow"
+                 PreviewKeyDown="OnScrapListHotkeyBoxPreviewKeyDown"
+                 PreviewTextInput="OnHotkeyBoxPreviewTextInput" />
+        <TextBlock x:Name="MaxScrapsLabel" Margin="0,20,0,8" />
+        <TextBox x:Name="MaxScrapsBox"
+                 PreviewTextInput="OnNumberBoxPreviewTextInput" />
+        <TextBlock x:Name="MaxTrashedScrapsLabel" Margin="0,16,0,8" />
+        <TextBox x:Name="MaxTrashedScrapsBox"
+                 PreviewTextInput="OnNumberBoxPreviewTextInput" />
+        <TextBlock x:Name="TrashRetentionLabel" Margin="0,16,0,8" />
+        <TextBox x:Name="TrashRetentionBox"
+                 PreviewTextInput="OnNumberBoxPreviewTextInput" />
+        <CheckBox x:Name="RestoreOnStartupCheck" Margin="0,20,0,0" />
         <TextBlock x:Name="LanguageLabel" Margin="0,20,0,8" />
         <ComboBox x:Name="LanguageBox" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">

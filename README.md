@@ -16,10 +16,12 @@ Clip part of a document, an error message, or a reference image in an instant, p
 - Press **Ctrl+Shift+Z** to freeze the screen, drag to select a region, and the selection stays on your desktop as a sticky note
 - Notes are always on top. Drag to move, `Ctrl+C` to copy, `Ctrl+S` to save as PNG, middle-click to close
 - Scroll the mouse wheel to change opacity, double-click to fold a note into a small tile to save space
+- **Scrap list** — open it with **Ctrl+Shift+L** to browse every scrap as a thumbnail. Show or hide notes, copy or save them, and recover closed ones from the trash
+- **Scraps persist across restarts.** Pinned notes come back where you left them next time you launch. Closing a note sends it to the trash instead of losing it, and the trash auto-clears after a configurable number of days
 - Multi-monitor support. Captures at 1:1 physical pixels, with no positional drift even across mixed DPI scaling such as 125% / 150% (Per-Monitor V2 aware)
-- Lives in the system tray. The hotkey can be changed from the settings window
+- Lives in the system tray. Hotkeys, retention limits, and startup restore can be changed from the settings window
 - Available in English and Japanese. Follows your Windows display language by default, and can be switched manually from the settings window
-- Runs portably — settings are saved to `settings.json` next to the executable, falling back to `%APPDATA%\SnapTack` if that location isn't writable
+- Runs portably — settings are saved to `settings.json` next to the executable, and scraps to a `scraps/` folder beside it, falling back to `%APPDATA%\SnapTack` if that location isn't writable
 
 ## Requirements
 
@@ -63,9 +65,22 @@ Click **More info** and then **Run anyway** to start the app.
 | Mouse wheel | Change opacity (20–100%) |
 | Double-click | Fold into a tile / restore |
 | Middle-click | Close |
-| Right-click | Menu (copy / save as PNG / opacity / fold / close) |
+| Right-click | Menu (copy / save as PNG / opacity / fold / close / hide to list) |
 
 You can pin as many notes as you like at once. Closing them all leaves the app running in the tray — quit from the tray menu's **Exit**.
+
+### The scrap list
+
+Open the scrap list with **Ctrl+Shift+L** (configurable) or the tray menu. It shows every scrap as a thumbnail, with a separate tab for the trash.
+
+| Action | Result |
+|---|---|
+| Double-click / `Enter` | Show the scrap on screen and bring it to the front |
+| `Ctrl+C` | Copy the selected scrap image |
+| `Delete` | Move to the trash (or permanently delete, with confirmation, when already in the trash) |
+| Right-click | Menu (show / hide / copy / save as PNG / move to trash — or restore / delete permanently in the trash) |
+
+Closing a note sends it to the trash rather than discarding it, so an accidental middle-click is recoverable. Scraps and the trash are capped (200 and 50 by default), and trash older than 30 days is cleared automatically; all three limits are configurable in the settings window, along with whether pinned notes are restored on startup.
 
 ## Building
 

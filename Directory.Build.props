@@ -6,7 +6,7 @@
       リリース時は Git タグが正となり、CI から -p:Version=x.y.z / /DMyAppVersion=x.y.z で上書きされる。
       SnapTack.csproj と installer/SnapTack.iss には直接書かないこと。
     -->
-    <Version>1.4.0</Version>
+    <Version>1.5.0</Version>
     <Product>SnapTack</Product>
     <Company>yamahand</Company>
     <Authors>yamahand</Authors>

@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -7,14 +9,19 @@ using SnapTack.Resources;
 namespace SnapTack.Views;
 
 /// <summary>
-/// 設定画面 (Fluent テーマ)。v1.0 の設定項目はホットキーの変更のみ (SPEC 4.5)。
+/// 設定画面 (Fluent テーマ)。v1.5 でスクラップリスト関連の項目を追加した (SPEC-v1.5 2.5)。
 /// 閉じた後に <see cref="Result"/> を参照する (保存時のみ非 null)。
 /// </summary>
 public partial class SettingsWindow : Window
 {
+    // 数値入力欄は 0-9 のみ受け付ける (符号・小数を弾く)
+    private static readonly Regex NonDigit = new("[^0-9]", RegexOptions.Compiled);
+
     private readonly AppSettings _current;
     private ModifierKeys _modifiers;
     private Key _key;
+    private ModifierKeys _scrapListModifiers;
+    private Key _scrapListKey;
 
     /// <summary>保存された新しい設定。キャンセル時は null。</summary>
     public AppSettings? Result { get; private set; }
@@ -27,6 +34,11 @@ public partial class SettingsWindow : Window
         Title = Strings.WindowTitle;
         HotkeyLabel.Text = Strings.HotkeyLabelText;
         HotkeyHint.Text = Strings.HotkeyHintText;
+        ScrapListHotkeyLabel.Text = Strings.ScrapListHotkeyLabelText;
+        MaxScrapsLabel.Text = Strings.MaxScrapsLabelText;
+        MaxTrashedScrapsLabel.Text = Strings.MaxTrashedScrapsLabelText;
+        TrashRetentionLabel.Text = Strings.TrashRetentionLabelText;
+        RestoreOnStartupCheck.Content = Strings.RestoreOnStartupText;
         LanguageLabel.Text = Strings.LanguageLabelText;
         SaveButton.Content = Strings.SaveButtonText;
         CancelButton.Content = Strings.CancelButtonText;
@@ -36,6 +48,16 @@ public partial class SettingsWindow : Window
         _modifiers = current.HotkeyModifiers;
         _key = current.HotkeyKey;
         UpdateHotkeyBoxText();
+
+        _scrapListModifiers = current.ScrapListHotkeyModifiers;
+        _scrapListKey = current.ScrapListHotkeyKey;
+        UpdateScrapListHotkeyBoxText();
+
+        // 数値は現在の UI カルチャで整形する (桁区切りは付けない)
+        MaxScrapsBox.Text = current.MaxScraps.ToString(CultureInfo.CurrentCulture);
+        MaxTrashedScrapsBox.Text = current.MaxTrashedScraps.ToString(CultureInfo.CurrentCulture);
+        TrashRetentionBox.Text = current.TrashRetentionDays.ToString(CultureInfo.CurrentCulture);
+        RestoreOnStartupCheck.IsChecked = current.RestoreScrapsOnStartup;
     }
 
     /// <summary>言語コンボボックスに選択肢を並べ、現在の設定を選択状態にする。</summary>
@@ -69,8 +91,34 @@ public partial class SettingsWindow : Window
 
     private void OnHotkeyBoxPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (TryCaptureHotkey(e, out var modifiers, out var key))
+        {
+            _modifiers = modifiers;
+            _key = key;
+            UpdateHotkeyBoxText();
+        }
+    }
+
+    private void OnScrapListHotkeyBoxPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (TryCaptureHotkey(e, out var modifiers, out var key))
+        {
+            _scrapListModifiers = modifiers;
+            _scrapListKey = key;
+            UpdateScrapListHotkeyBoxText();
+        }
+    }
+
+    /// <summary>
+    /// ホットキー入力欄のキー押下を解釈する。本体キーが確定したときだけ true を返す。
+    /// キャプチャ用とスクラップリスト用の 2 つの入力欄で共有する。
+    /// </summary>
+    private bool TryCaptureHotkey(KeyEventArgs e, out ModifierKeys modifiers, out Key key)
+    {
+        modifiers = ModifierKeys.None;
+
         // Alt 併用時は SystemKey 側、IME 有効時は ImeProcessedKey 側に実キーが入る
-        var key = e.Key switch
+        key = e.Key switch
         {
             Key.System => e.SystemKey,
             Key.ImeProcessed => e.ImeProcessedKey,
@@ -81,7 +129,7 @@ public partial class SettingsWindow : Window
         // (保存 / キャンセル / フォーカス移動) として既定処理に流す
         if (Keyboard.Modifiers == ModifierKeys.None && key is Key.Enter or Key.Escape or Key.Tab)
         {
-            return;
+            return false;
         }
 
         // 上記以外はホットキーの取り込み専用にするため、既定のキー処理は止める
@@ -94,12 +142,11 @@ public partial class SettingsWindow : Window
             or Key.LeftAlt or Key.RightAlt
             or Key.LWin or Key.RWin)
         {
-            return;
+            return false;
         }
 
-        _modifiers = Keyboard.Modifiers;
-        _key = key;
-        UpdateHotkeyBoxText();
+        modifiers = Keyboard.Modifiers;
+        return true;
     }
 
     private void OnHotkeyBoxPreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
@@ -108,10 +155,17 @@ public partial class SettingsWindow : Window
         e.Handled = true;
     }
 
+    private void OnNumberBoxPreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
+    {
+        // 数字以外の入力を弾く (貼り付けは PreviewTextInput を通らないため保存時にも検証する)
+        e.Handled = NonDigit.IsMatch(e.Text);
+    }
+
     private void OnSaveClick(object sender, RoutedEventArgs e)
     {
         // 修飾キーなしの登録は通常のキー入力を乗っ取ってしまうため許可しない
-        if (_modifiers == ModifierKeys.None)
+        // (キャプチャ用・スクラップリスト用のどちらも修飾必須)
+        if (_modifiers == ModifierKeys.None || _scrapListModifiers == ModifierKeys.None)
         {
             MessageBox.Show(this, Strings.ModifierRequiredMessage, Strings.WindowTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
@@ -121,10 +175,24 @@ public partial class SettingsWindow : Window
         var result = _current.Clone();
         result.HotkeyModifiers = _modifiers;
         result.HotkeyKey = _key;
+        result.ScrapListHotkeyModifiers = _scrapListModifiers;
+        result.ScrapListHotkeyKey = _scrapListKey;
         result.Language = SelectedLanguage;
+
+        // 数値欄は空・非数字でも落ちないよう既定値へフォールバックし、下限でクランプする。
+        // 上限を 0 にすると全消えするため、保持数は最低 1 を保証する
+        result.MaxScraps = Math.Max(1, ParseOrDefault(MaxScrapsBox.Text, _current.MaxScraps));
+        result.MaxTrashedScraps = Math.Max(0, ParseOrDefault(MaxTrashedScrapsBox.Text, _current.MaxTrashedScraps));
+        result.TrashRetentionDays = Math.Max(0, ParseOrDefault(TrashRetentionBox.Text, _current.TrashRetentionDays));
+        result.RestoreScrapsOnStartup = RestoreOnStartupCheck.IsChecked == true;
+
         Result = result;
         Close();
     }
+
+    /// <summary>数値欄のテキストを整数に変換する。空・非数字なら現在値を返す。</summary>
+    private static int ParseOrDefault(string text, int fallback) =>
+        int.TryParse(text, NumberStyles.Integer, CultureInfo.CurrentCulture, out int value) ? value : fallback;
 
     private void OnCancelClick(object sender, RoutedEventArgs e)
     {
@@ -135,5 +203,10 @@ public partial class SettingsWindow : Window
     private void UpdateHotkeyBoxText()
     {
         HotkeyBox.Text = AppSettings.FormatHotkey(_modifiers, _key);
+    }
+
+    private void UpdateScrapListHotkeyBoxText()
+    {
+        ScrapListHotkeyBox.Text = AppSettings.FormatHotkey(_scrapListModifiers, _scrapListKey);
     }
 }
