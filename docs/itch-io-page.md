@@ -63,12 +63,25 @@ gh release download v1.5.0 --dir artifacts/itch
 
 ## カバー画像 / スクリーンショット
 
-- **Cover image (必須)**: 630×500 px。未作成。`docs/images/screenshot.png` を切り出して作るか、ロゴ + 付箋のイメージを用意する
+- **Cover image (必須)**: 630×500 px → `docs/images/cover.png` を使う。
+  `scripts/make-cover.ps1` で生成しており、色や配置はスクリプト冒頭の変数で調整できる
 - **Screenshots**: `docs/images/screenshot.png` をそのまま使える
 
 ## ページ本文 (Description)
 
-以下をそのまま itch.io の Description 欄に貼る (itch.io は Markdown 対応)。
+> **Description 欄は Markdown 非対応。** itch.io のプロジェクト説明はリッチテキスト
+> エディタ (以前の Markdown 方式を置き換えたもの) で、`##` や `|` の表をそのまま
+> 貼っても変換されず、文字列として表示される。
+>
+> **貼り付けるときはエディタの `<>` ボタンで HTML モードに切り替え、
+> `itch-io-description.html` の中身を貼ること。**
+> itch.io は「HTML で書き始めたら以降も HTML モードで編集する」ことを推奨している
+> (リッチテキスト側で触るとマークアップが書き換えられ、タグが除去されることがある)。
+>
+> なお Markdown が使えるのはコミュニティ投稿・devlog・コメント欄で、説明文は対象外。
+
+以下は文面の原稿 (可読性のため Markdown で保持)。実際に貼るのは
+`docs/itch-io-description.html` の方。
 
 ---
 
