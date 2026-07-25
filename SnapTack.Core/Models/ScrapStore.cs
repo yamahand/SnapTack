@@ -1,8 +1,8 @@
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Windows;
-using System.Windows.Media.Imaging;
+using SnapTack.Images;
+using SnapTack.Primitives;
 
 namespace SnapTack.Models;
 
@@ -27,19 +27,22 @@ public sealed class ScrapStore
     // scraps ディレクトリ。書き込みを試みて成功した側を採用する (設定と同じ判定)
     private readonly string _primaryDir;
     private readonly string _fallbackDir;
+    private readonly IImageCodec _codec; // PNG の実エンコード・デコードは UI 層の実装に委ねる
     private string? _resolvedDir; // 書き込み確定後にキャッシュする
 
-    public ScrapStore()
+    public ScrapStore(IImageCodec codec)
     {
         _primaryDir = Path.Combine(StorageLocation.PrimaryDirectory, ScrapsFolderName);
         _fallbackDir = Path.Combine(StorageLocation.FallbackDirectory, ScrapsFolderName);
+        _codec = codec;
     }
 
     /// <summary>保存先を明示して初期化する (テスト用)。フォールバックは使わない。</summary>
-    internal ScrapStore(string scrapsDirectory)
+    internal ScrapStore(string scrapsDirectory, IImageCodec codec)
     {
         _primaryDir = scrapsDirectory;
         _fallbackDir = scrapsDirectory;
+        _codec = codec;
     }
 
     // ===== 読み込み =====
@@ -109,7 +112,7 @@ public sealed class ScrapStore
             return false;
         }
 
-        var rect = new Int32Rect(entry.PhysicalRect.X, entry.PhysicalRect.Y,
+        var rect = new PixelRect(entry.PhysicalRect.X, entry.PhysicalRect.Y,
             entry.PhysicalRect.Width, entry.PhysicalRect.Height);
         item = new ScrapItem(id, rect, entry.CapturedAt)
         {
@@ -117,22 +120,11 @@ public sealed class ScrapStore
             TrashedAt = entry.TrashedAt,
             OpacityPercent = entry.OpacityPercent,
             IsDice = entry.IsDice,
-            WindowPosition = entry.WindowPosition is { } wp ? new Point(wp.X, wp.Y) : null,
+            WindowPosition = entry.WindowPosition is { } wp ? new PixelPoint(wp.X, wp.Y) : null,
         };
         // 画像は初回参照時に読む (遅延読み込み。SPEC-v1.5 3.3)
-        item.SetImageLoader(() => LoadImage(imagePath));
+        item.SetImageLoader(() => _codec.DecodePng(imagePath));
         return true;
-    }
-
-    private static BitmapSource LoadImage(string path)
-    {
-        var image = new BitmapImage();
-        image.BeginInit();
-        image.CacheOption = BitmapCacheOption.OnLoad; // ファイルを掴みっぱなしにしない
-        image.UriSource = new Uri(path);
-        image.EndInit();
-        image.Freeze();
-        return image;
     }
 
     // ===== 書き込み =====
@@ -173,10 +165,8 @@ public sealed class ScrapStore
         }
         try
         {
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(item.Image));
             using var stream = File.Create(Path.Combine(dir, item.Id + ".png"));
-            encoder.Save(stream);
+            _codec.EncodePng(item.Image, stream);
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

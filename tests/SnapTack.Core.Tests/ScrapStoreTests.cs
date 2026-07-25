@@ -1,8 +1,6 @@
 using System.IO;
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using SnapTack.Models;
+using SnapTack.Primitives;
 using Xunit;
 
 namespace SnapTack.Tests;
@@ -24,14 +22,10 @@ public sealed class ScrapStoreTests : IDisposable
         try { Directory.Delete(_dir, recursive: true); } catch (IOException) { }
     }
 
-    private ScrapStore NewStore() => new(_dir);
+    private ScrapStore NewStore() => new(_dir, new FakeImageCodec());
 
-    private static ScrapItem NewScrap(ScrapState state = ScrapState.Pinned)
-    {
-        var image = BitmapSource.Create(2, 2, 96, 96, PixelFormats.Bgr24, null,
-            new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }, 6);
-        return new ScrapItem(image, new Int32Rect(10, 20, 2, 2)) { State = state };
-    }
+    private static ScrapItem NewScrap(ScrapState state = ScrapState.Pinned) =>
+        new(new FakeImage(2, 2), new PixelRect(10, 20, 2, 2)) { State = state };
 
     private string IndexPath => Path.Combine(_dir, "index.json");
 
@@ -42,7 +36,7 @@ public sealed class ScrapStoreTests : IDisposable
         var item = NewScrap();
         item.OpacityPercent = 75;
         item.IsDice = true;
-        item.WindowPosition = new Point(100, 200);
+        item.WindowPosition = new PixelPoint(100, 200);
 
         Assert.True(store.SaveImage(item));
         Assert.True(store.SaveIndex(new[] { item }));
@@ -55,7 +49,7 @@ public sealed class ScrapStoreTests : IDisposable
         Assert.Equal(item.PhysicalRect, one.PhysicalRect);
         Assert.Equal(75, one.OpacityPercent);
         Assert.True(one.IsDice);
-        Assert.Equal(new Point(100, 200), one.WindowPosition);
+        Assert.Equal(new PixelPoint(100, 200), one.WindowPosition);
         // 画像は遅延読み込み。参照するとファイルから読める
         Assert.False(one.IsImageLoaded);
         Assert.NotNull(one.Image);
@@ -65,7 +59,7 @@ public sealed class ScrapStoreTests : IDisposable
     [Fact]
     public void ディレクトリが無ければ空を返す()
     {
-        var store = new ScrapStore(Path.Combine(_dir, "does-not-exist"));
+        var store = new ScrapStore(Path.Combine(_dir, "does-not-exist"), new FakeImageCodec());
 
         var loaded = store.Load(out bool needsRewrite);
 
@@ -116,7 +110,7 @@ public sealed class ScrapStoreTests : IDisposable
         // ディレクトリを作れない状況を作る: 同名のファイルを置いておくと CreateDirectory が失敗する
         string blocked = Path.Combine(_dir, "blocked");
         File.WriteAllText(blocked, "not a directory");
-        var store = new ScrapStore(blocked);
+        var store = new ScrapStore(blocked, new FakeImageCodec());
 
         Assert.False(store.SaveImage(NewScrap()));
         Assert.False(store.SaveIndex(new[] { NewScrap() }));

@@ -4,9 +4,13 @@ namespace SnapTack.Views;
 
 /// <summary>
 /// 付箋ウィンドウを <see cref="ScrapManager"/> から扱うための抽象。
-/// 実体は <see cref="ScrapWindow"/>(STA・実ウィンドウ)だが、この抽象を挟むことで
+/// 実体は UI 層の ScrapWindow (STA・実ウィンドウ) だが、この抽象を挟むことで
 /// Manager のコレクション管理・状態遷移ロジックをテスト可能にする (PR #14 の指摘)。
 /// </summary>
+/// <remarks>
+/// 付箋ウィンドウは UI 層にあるが、この契約はロジック側 (ScrapManager) が所有するため
+/// Core に置く。名前空間は移動前のまま <c>SnapTack.Views</c> を維持している。
+/// </remarks>
 public interface IScrapView
 {
     /// <summary>表示しているスクラップ。</summary>
@@ -27,7 +31,10 @@ public interface IScrapView
     /// <summary>ウィンドウを閉じる(Manager からの明示的な破棄)。</summary>
     void Close();
 
-    /// <summary>ウィンドウを最前面へ持ってくる。戻り値は <see cref="System.Windows.Window.Activate"/> に準ずる。</summary>
+    /// <summary>
+    /// ウィンドウを最前面へ持ってくる。戻り値はフォーカスを与えられたかどうか
+    /// (WPF の <c>Window.Activate</c> に準ずる)。
+    /// </summary>
     bool Activate();
 
     /// <summary>現在の表示状態 (不透明度・サイコロ・位置) を <see cref="Item"/> へ書き戻す (終了時の保存用)。</summary>

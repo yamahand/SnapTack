@@ -1,4 +1,4 @@
-using System.Windows;
+using SnapTack.Primitives;
 
 namespace SnapTack.Capture;
 
@@ -11,4 +11,4 @@ namespace SnapTack.Capture;
 /// プライマリの左・上に別モニタが配置されている場合、座標は負になり得る。
 /// </param>
 /// <param name="IsPrimary">プライマリモニタかどうか。</param>
-public sealed record MonitorInfo(string DeviceName, Int32Rect PhysicalBounds, bool IsPrimary);
+public sealed record MonitorInfo(string DeviceName, PixelRect PhysicalBounds, bool IsPrimary);

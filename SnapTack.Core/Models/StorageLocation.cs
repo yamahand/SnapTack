@@ -6,6 +6,10 @@ namespace SnapTack.Models;
 /// 設定・スクラップの保存先ディレクトリの決定を共通化する (SPEC 4.5 / SPEC-v1.5 2.4)。
 /// ポータブル運用のため exe 同階層を優先し、書き込み不可なら %APPDATA%\SnapTack へフォールバックする。
 /// </summary>
+/// <remarks>
+/// <see cref="Environment.SpecialFolder.ApplicationData"/> の実体は OS 依存
+/// (Windows は %APPDATA%)。Windows 版の挙動を変えないため現状は素のまま使っている。
+/// </remarks>
 internal static class StorageLocation
 {
     private const string AppDataFolderName = "SnapTack";

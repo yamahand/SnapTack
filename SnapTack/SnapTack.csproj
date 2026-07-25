@@ -27,6 +27,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Windows 非依存のロジック層。UI を差し替えても再利用できるよう net10.0 に保つ -->
+    <ProjectReference Include="..\SnapTack.Core\SnapTack.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- トレイアイコンが実行時に読み込むため WPF リソースとしても埋め込む -->
     <Resource Include="Assets\SnapTack.ico" />
   </ItemGroup>

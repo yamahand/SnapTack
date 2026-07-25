@@ -1,4 +1,4 @@
-using System.Windows.Media.Imaging;
+using SnapTack.Images;
 
 namespace SnapTack.Capture;
 
@@ -17,5 +17,5 @@ public interface IScreenCapturer
     /// 指定モニタ全体を物理ピクセル解像度でキャプチャし、Freeze 済みの画像を返す。
     /// 失敗時は例外を投げる(呼び出し側で通知して継続する)。
     /// </summary>
-    BitmapSource CaptureMonitor(MonitorInfo monitor);
+    ICapturedImage CaptureMonitor(MonitorInfo monitor);
 }

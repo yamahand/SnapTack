@@ -2,7 +2,9 @@ using System.Drawing;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
+using SnapTack.Images;
 using SnapTack.Interop;
+using SnapTack.Primitives;
 
 namespace SnapTack.Capture;
 
@@ -20,12 +22,12 @@ public sealed class GdiScreenCapturer : IScreenCapturer
         return screens
             .Select(s => new MonitorInfo(
                 s.DeviceName,
-                new Int32Rect(s.Bounds.X, s.Bounds.Y, s.Bounds.Width, s.Bounds.Height),
+                new PixelRect(s.Bounds.X, s.Bounds.Y, s.Bounds.Width, s.Bounds.Height),
                 s.Primary))
             .ToList();
     }
 
-    public BitmapSource CaptureMonitor(MonitorInfo monitor)
+    public ICapturedImage CaptureMonitor(MonitorInfo monitor)
     {
         var bounds = monitor.PhysicalBounds;
 
@@ -43,7 +45,7 @@ public sealed class GdiScreenCapturer : IScreenCapturer
                 hBitmap, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
             // オーバーレイ・付箋間で共有するため Freeze する
             source.Freeze();
-            return source;
+            return new WpfCapturedImage(source);
         }
         finally
         {

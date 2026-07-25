@@ -1,4 +1,4 @@
-using System.Windows.Input;
+using SnapTack.Input;
 using SnapTack.Models;
 using Xunit;
 
@@ -27,14 +27,14 @@ public class SettingsStoreTests
         Assert.NotNull(settings);
 
         // 既存キーはそのまま読める
-        Assert.Equal(ModifierKeys.Control | ModifierKeys.Alt, settings!.HotkeyModifiers);
-        Assert.Equal(Key.S, settings.HotkeyKey);
+        Assert.Equal(HotkeyModifier.Control | HotkeyModifier.Alt, settings!.HotkeyModifiers);
+        Assert.Equal("S", settings.HotkeyKey);
         Assert.Equal(@"C:\Users\me\Pictures", settings.LastSaveDirectory);
         Assert.Equal(AppLanguage.Japanese, settings.Language);
 
         // v1.5 で追加したキーは既定値になる (SPEC-v1.5 2.5)
-        Assert.Equal(ModifierKeys.Control | ModifierKeys.Shift, settings.ScrapListHotkeyModifiers);
-        Assert.Equal(Key.L, settings.ScrapListHotkeyKey);
+        Assert.Equal(HotkeyModifier.Control | HotkeyModifier.Shift, settings.ScrapListHotkeyModifiers);
+        Assert.Equal("L", settings.ScrapListHotkeyKey);
         Assert.Equal(200, settings.MaxScraps);
         Assert.Equal(50, settings.MaxTrashedScraps);
         Assert.Equal(30, settings.TrashRetentionDays);
@@ -60,8 +60,8 @@ public class SettingsStoreTests
         var settings = SettingsStore.Deserialize(v15Json);
 
         Assert.NotNull(settings);
-        Assert.Equal(ModifierKeys.Control | ModifierKeys.Alt, settings!.ScrapListHotkeyModifiers);
-        Assert.Equal(Key.K, settings.ScrapListHotkeyKey);
+        Assert.Equal(HotkeyModifier.Control | HotkeyModifier.Alt, settings!.ScrapListHotkeyModifiers);
+        Assert.Equal("K", settings.ScrapListHotkeyKey);
         Assert.Equal(42, settings.MaxScraps);
         Assert.Equal(7, settings.MaxTrashedScraps);
         Assert.Equal(0, settings.TrashRetentionDays);

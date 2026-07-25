@@ -7,8 +7,10 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
+using SnapTack.Images;
 using SnapTack.Interop;
 using SnapTack.Models;
+using SnapTack.Primitives;
 using SnapTack.Resources;
 
 namespace SnapTack.Views;
@@ -38,7 +40,7 @@ public partial class ScrapWindow : Window, IScrapView
     private static readonly int[] OpacityPresets = [100, 75, 50, 25];
 
     private readonly BitmapSource _image;      // 物理ピクセル (Freeze 済み)
-    private readonly Int32Rect _physicalRect;  // キャプチャ元の位置・サイズ (物理px、仮想スクリーン座標)
+    private readonly PixelRect _physicalRect;  // キャプチャ元の位置・サイズ (物理px、仮想スクリーン座標)
     private readonly SettingsService _settings;
     private readonly List<MenuItem> _opacityPresetItems = [];
 
@@ -61,7 +63,8 @@ public partial class ScrapWindow : Window, IScrapView
     {
         InitializeComponent();
         Item = item;
-        _image = item.Image;
+        // 表示・クリップボード・PNG 保存には WPF の型が必要なため、ここで一度だけ実装型へ戻す
+        _image = item.Image.ToBitmapSource();
         _physicalRect = item.PhysicalRect;
         _settings = settings;
         ScrapImage.Source = _image;
@@ -114,7 +117,7 @@ public partial class ScrapWindow : Window, IScrapView
     }
 
     /// <summary>ウィンドウの現在の左上位置を物理px (仮想スクリーン座標) で取得する。</summary>
-    private bool TryGetPhysicalPosition(out Point position)
+    private bool TryGetPhysicalPosition(out PixelPoint position)
     {
         position = default;
         var hwnd = new WindowInteropHelper(this).Handle;
@@ -122,7 +125,7 @@ public partial class ScrapWindow : Window, IScrapView
         {
             return false;
         }
-        position = new Point(rect.Left, rect.Top);
+        position = new PixelPoint(rect.Left, rect.Top);
         return true;
     }
 

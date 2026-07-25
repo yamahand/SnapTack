@@ -5,7 +5,9 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using SnapTack.Capture;
+using SnapTack.Images;
 using SnapTack.Interop;
+using SnapTack.Primitives;
 
 namespace SnapTack.Views;
 
@@ -31,17 +33,18 @@ public partial class OverlayWindow : Window
     private bool _dragging;
 
     /// <summary>確定した選択範囲の画像 (Freeze 済み)。キャンセル時は null。</summary>
-    public BitmapSource? ResultImage { get; private set; }
+    public ICapturedImage? ResultImage { get; private set; }
 
     /// <summary>確定した選択範囲 (物理ピクセル、仮想スクリーン座標)。</summary>
-    public Int32Rect ResultPhysicalRect { get; private set; }
+    public PixelRect ResultPhysicalRect { get; private set; }
 
-    public OverlayWindow(BitmapSource screenshot, MonitorInfo monitor)
+    public OverlayWindow(ICapturedImage screenshot, MonitorInfo monitor)
     {
         InitializeComponent();
-        _screenshot = screenshot;
+        // 表示と切り出しには WPF の型が必要なため、ここで一度だけ実装型へ戻す
+        _screenshot = screenshot.ToBitmapSource();
         _monitor = monitor;
-        FrozenImage.Source = screenshot;
+        FrozenImage.Source = _screenshot;
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -152,11 +155,13 @@ public partial class OverlayWindow : Window
             return;
         }
 
-        var cropped = new CroppedBitmap(_screenshot, localRect);
+        var cropped = new CroppedBitmap(
+            _screenshot,
+            new Int32Rect(localRect.X, localRect.Y, localRect.Width, localRect.Height));
         cropped.Freeze(); // 付箋ウィンドウ等へ渡すため
-        ResultImage = cropped;
+        ResultImage = new WpfCapturedImage(cropped);
         // モニタ内ローカル座標 → 仮想スクリーン座標
-        ResultPhysicalRect = new Int32Rect(
+        ResultPhysicalRect = new PixelRect(
             _monitor.PhysicalBounds.X + localRect.X,
             _monitor.PhysicalBounds.Y + localRect.Y,
             localRect.Width,
@@ -208,11 +213,15 @@ public partial class OverlayWindow : Window
     }
 
     /// <summary>DIP の矩形をスクリーンショットの物理ピクセル矩形へ変換する。</summary>
-    private Int32Rect ToPhysicalRect(Rect dipRect) =>
+    /// <remarks>
+    /// 選択枠の描画には WPF の Rect を使うため、Core へ渡す境界でここで <see cref="DipRect"/> へ移す。
+    /// </remarks>
+    private PixelRect ToPhysicalRect(Rect dipRect) =>
         RectMath.ToPhysicalRect(
-            dipRect, ActualWidth, ActualHeight, _screenshot.PixelWidth, _screenshot.PixelHeight);
+            new DipRect(dipRect.X, dipRect.Y, dipRect.Width, dipRect.Height),
+            ActualWidth, ActualHeight, _screenshot.PixelWidth, _screenshot.PixelHeight);
 
     /// <summary>矩形をスクリーンショットの範囲内 (物理px) に収める。</summary>
-    private Int32Rect ClampToScreenshot(Int32Rect rect) =>
+    private PixelRect ClampToScreenshot(PixelRect rect) =>
         RectMath.ClampToScreenshot(rect, _screenshot.PixelWidth, _screenshot.PixelHeight);
 }

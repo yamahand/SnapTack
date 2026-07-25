@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
+using SnapTack.Images;
 using SnapTack.Models;
 using SnapTack.Resources;
 
@@ -290,7 +291,7 @@ public partial class ScrapListWindow : Window
         }
         try
         {
-            Clipboard.SetImage(first.Image);
+            Clipboard.SetImage(first.Image.ToBitmapSource());
         }
         catch (ExternalException)
         {
@@ -322,7 +323,7 @@ public partial class ScrapListWindow : Window
         try
         {
             var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(first.Image));
+            encoder.Frames.Add(BitmapFrame.Create(first.Image.ToBitmapSource()));
             using (var stream = File.Create(dialog.FileName))
             {
                 encoder.Save(stream);

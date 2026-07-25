@@ -12,7 +12,7 @@
 
 ## 技術スタック(変更禁止)
 
-- C# / .NET 10 / WPF (`net10.0-windows`)
+- C# / .NET 10 / WPF (`net10.0-windows`)。ロジックは `SnapTack.Core` (`net10.0`) に分離してある
 - トレイ常駐: WinForms の `NotifyIcon` (`UseWindowsForms=true`)
 - グローバルホットキー: `RegisterHotKey` (P/Invoke)
 - キャプチャ: `IScreenCapturer` で抽象化。実装は `Graphics.CopyFromScreen`
@@ -22,16 +22,38 @@
 ## ディレクトリ構成
 
 ```
-SnapTack/
-  Interop/    P/Invoke ラッパー
-  Capture/    キャプチャ抽象化と実装
-  Views/      オーバーレイ・付箋・設定の各ウィンドウ
-  Models/     設定などのデータクラス
-  Resources/  UI 文字列 (.resx) とアクセサ
-tests/SnapTack.Tests/   xUnit
+SnapTack.Core/            ロジック層 (net10.0 / Windows 非依存)
+  Primitives/  座標・矩形の値型 (PixelRect / PixelPoint / DipRect)
+  Images/      画像とコーデックの抽象 (ICapturedImage / IImageCodec)
+  Input/       ホットキーの修飾キー
+  Capture/     キャプチャ抽象化 (IScreenCapturer / MonitorInfo) と座標計算 (RectMath)
+  Models/      設定・スクラップのデータと管理・永続化
+  Views/       IScrapView (付箋ビューの契約。実装は WPF 側)
+SnapTack/                 WPF 層 (net10.0-windows / 実行可能プロジェクト)
+  Interop/     P/Invoke ラッパー
+  Input/       Core のホットキー表現 ⇔ WPF の ModifierKeys / Key の変換
+  Images/      ICapturedImage / IImageCodec の WPF 実装
+  Capture/     GDI キャプチャ実装とキャプチャ起動フロー
+  Views/       オーバーレイ・付箋・スクラップリスト・設定の各ウィンドウ
+  Resources/   UI 文字列 (.resx) とアクセサ
+tests/SnapTack.Core.Tests/  xUnit (net10.0。ロジックの検証)
+tests/SnapTack.Tests/       xUnit (net10.0-windows。WPF 側リソースの検証)
 ```
 
 ビューとロジックは分離するが、小規模アプリのため厳密な MVVM フレームワークは導入しない。
+
+### ロジックは `SnapTack.Core` (net10.0) に置く
+
+**Core に WPF / WinForms の型を持ち込まないこと。** WPF の `Int32Rect` / `Rect` / `Point` / `BitmapSource` / `ModifierKeys` / `Key` は Core 側の等価な型に置き換えてある。`SnapTack.Core.Tests` が Core だけを参照する `net10.0` プロジェクトになっているため、WPF 型が混入するとビルドで落ちる。
+
+境界の渡し方:
+
+- 画像は `ICapturedImage` で受け渡す。WPF 側は `WpfCapturedImage` で `BitmapSource` を包み、表示・クリップボード・PNG 保存の直前に `ToBitmapSource()` で戻す
+- PNG の読み書きは `IImageCodec`(実装は `WpfImageCodec`)。`ScrapStore` は自分でエンコードしない
+- 付箋ウィンドウの生成は `App` が `ScrapManager` へファクトリとして渡す(Core は `ScrapWindow` を知らない)
+- ホットキーの本体キーは**キー名の文字列**で持つ(`AppSettings.HotkeyKey`)。WPF の `Key` 列挙を写し取ると、写し漏れが settings.json に現れた時点で JSON 読み込み全体が失敗し、設定がまるごと既定値へ戻るため
+
+UI 文字列 (`Resources/`) は WPF 側に残している。Core へ移すと衛星アセンブリの出力先が変わり、single-file publish + インストーラー経路で日本語表示が失われるリスクがあるため(下記「配布時の注意」)。
 
 ## 重要な設計判断
 

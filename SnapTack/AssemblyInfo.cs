@@ -1,7 +1,8 @@
 using System.Runtime.CompilerServices;
 using System.Windows;
 
-// テストから internal メンバー (LanguageService.Resolve、Resources.Strings) を検証するため
+// テストから internal メンバー (Resources.Strings) を検証するため。
+// Windows 非依存のロジック側は SnapTack.Core/AssemblyInfo.cs が同じ役割を担う
 [assembly: InternalsVisibleTo("SnapTack.Tests")]
 
 [assembly:ThemeInfo(

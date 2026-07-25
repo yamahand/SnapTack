@@ -1,4 +1,4 @@
-using System.Windows.Input;
+using SnapTack.Input;
 
 namespace SnapTack.Models;
 
@@ -24,16 +24,24 @@ public enum ScrapListLayout
 public class AppSettings
 {
     /// <summary>キャプチャホットキーの修飾キー。既定は Ctrl+Shift (SPEC 4.2)。</summary>
-    public ModifierKeys HotkeyModifiers { get; set; } = ModifierKeys.Control | ModifierKeys.Shift;
+    public HotkeyModifier HotkeyModifiers { get; set; } = HotkeyModifier.Control | HotkeyModifier.Shift;
 
-    /// <summary>キャプチャホットキーの本体キー。既定は Z。</summary>
-    public Key HotkeyKey { get; set; } = Key.Z;
+    /// <summary>キャプチャホットキーの本体キー (キー名)。既定は Z。</summary>
+    /// <remarks>
+    /// WPF の <c>Key</c> 列挙ではなくキー名の文字列で持つ。列挙を Core 側へ写し取る案は採らなかった:
+    /// 写し漏れたキーが保存済みの settings.json に現れた時点で JSON の読み込み全体が
+    /// <c>JsonException</c> になり、ホットキーだけでなく設定がまるごと既定値へ戻ってしまうため。
+    /// JSON は従来も <c>JsonStringEnumConverter</c> によって "Z" のような名前で書かれていたので、
+    /// 文字列にしても保存形式は変わらない (SPEC-v1.5 4)。
+    /// キー名からプラットフォーム固有のキーコードへの変換は UI 層が行う。
+    /// </remarks>
+    public string HotkeyKey { get; set; } = "Z";
 
     /// <summary>スクラップリストを開くホットキーの修飾キー。既定は Ctrl+Shift (SPEC-v1.5 2.5)。</summary>
-    public ModifierKeys ScrapListHotkeyModifiers { get; set; } = ModifierKeys.Control | ModifierKeys.Shift;
+    public HotkeyModifier ScrapListHotkeyModifiers { get; set; } = HotkeyModifier.Control | HotkeyModifier.Shift;
 
-    /// <summary>スクラップリストを開くホットキーの本体キー。既定は L。</summary>
-    public Key ScrapListHotkeyKey { get; set; } = Key.L;
+    /// <summary>スクラップリストを開くホットキーの本体キー (キー名)。既定は L。</summary>
+    public string ScrapListHotkeyKey { get; set; } = "L";
 
     /// <summary>PNG 保存の前回フォルダ。未保存なら null で「ピクチャ」を使う (SPEC-v1.x 2.1)。</summary>
     public string? LastSaveDirectory { get; set; }
@@ -62,15 +70,18 @@ public class AppSettings
     /// <summary>"Ctrl+Shift+Z" 形式の表示文字列を返す。</summary>
     public string GetHotkeyDisplayText() => FormatHotkey(HotkeyModifiers, HotkeyKey);
 
+    /// <summary>キーが未設定・不明なときの表記。WPF の <c>Key.None.ToString()</c> に合わせている。</summary>
+    public const string NoKeyName = "None";
+
     /// <summary>修飾キーとキーの組み合わせを "Ctrl+Alt+Shift+Win+キー" 形式で整形する。</summary>
-    public static string FormatHotkey(ModifierKeys modifiers, Key key)
+    public static string FormatHotkey(HotkeyModifier modifiers, string key)
     {
         var parts = new List<string>(5);
-        if (modifiers.HasFlag(ModifierKeys.Control)) parts.Add("Ctrl");
-        if (modifiers.HasFlag(ModifierKeys.Alt)) parts.Add("Alt");
-        if (modifiers.HasFlag(ModifierKeys.Shift)) parts.Add("Shift");
-        if (modifiers.HasFlag(ModifierKeys.Windows)) parts.Add("Win");
-        parts.Add(key.ToString());
+        if (modifiers.HasFlag(HotkeyModifier.Control)) parts.Add("Ctrl");
+        if (modifiers.HasFlag(HotkeyModifier.Alt)) parts.Add("Alt");
+        if (modifiers.HasFlag(HotkeyModifier.Shift)) parts.Add("Shift");
+        if (modifiers.HasFlag(HotkeyModifier.Windows)) parts.Add("Win");
+        parts.Add(string.IsNullOrEmpty(key) ? NoKeyName : key);
         return string.Join("+", parts);
     }
 }

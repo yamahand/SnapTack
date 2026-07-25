@@ -1,4 +1,5 @@
 using System.Windows.Media.Imaging;
+using SnapTack.Images;
 using SnapTack.Models;
 using SnapTack.Resources;
 
@@ -39,7 +40,7 @@ public sealed class ScrapListItem
     public ScrapListItem(ScrapItem item)
     {
         Item = item;
-        Thumbnail = CreateThumbnail(item.Image);
+        Thumbnail = CreateThumbnail(item.Image.ToBitmapSource());
     }
 
     /// <summary>元画像を縮小デコードしてサムネイルを作る。中央クロップは表示側の UniformToFill で行う。</summary>

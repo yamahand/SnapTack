@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using SnapTack.Input;
 using SnapTack.Models;
 using SnapTack.Resources;
 
@@ -18,6 +19,9 @@ public partial class SettingsWindow : Window
     private static readonly Regex NonDigit = new("[^0-9]", RegexOptions.Compiled);
 
     private readonly AppSettings _current;
+
+    // 入力欄は KeyEventArgs から直接受け取るため、画面内では WPF の型で保持し、
+    // 設定 (AppSettings) との受け渡し時だけ Core の表現へ変換する
     private ModifierKeys _modifiers;
     private Key _key;
     private ModifierKeys _scrapListModifiers;
@@ -45,12 +49,12 @@ public partial class SettingsWindow : Window
 
         InitializeLanguageBox(current.Language);
 
-        _modifiers = current.HotkeyModifiers;
-        _key = current.HotkeyKey;
+        _modifiers = current.HotkeyModifiers.ToWpf();
+        _key = HotkeyKeyMap.ToWpfKey(current.HotkeyKey);
         UpdateHotkeyBoxText();
 
-        _scrapListModifiers = current.ScrapListHotkeyModifiers;
-        _scrapListKey = current.ScrapListHotkeyKey;
+        _scrapListModifiers = current.ScrapListHotkeyModifiers.ToWpf();
+        _scrapListKey = HotkeyKeyMap.ToWpfKey(current.ScrapListHotkeyKey);
         UpdateScrapListHotkeyBoxText();
 
         // 数値は現在の UI カルチャで整形する (桁区切りは付けない)
@@ -181,10 +185,10 @@ public partial class SettingsWindow : Window
 
         // 画面にない設定項目 (LastSaveDirectory 等) を落とさないよう、現在値のコピーへ上書きする
         var result = _current.Clone();
-        result.HotkeyModifiers = _modifiers;
-        result.HotkeyKey = _key;
-        result.ScrapListHotkeyModifiers = _scrapListModifiers;
-        result.ScrapListHotkeyKey = _scrapListKey;
+        result.HotkeyModifiers = _modifiers.ToCore();
+        result.HotkeyKey = _key.ToCoreName();
+        result.ScrapListHotkeyModifiers = _scrapListModifiers.ToCore();
+        result.ScrapListHotkeyKey = _scrapListKey.ToCoreName();
         result.Language = SelectedLanguage;
 
         // 数値欄は空・非数字でも落ちないよう既定値へフォールバックし、下限でクランプする。
@@ -213,11 +217,12 @@ public partial class SettingsWindow : Window
 
     private void UpdateHotkeyBoxText()
     {
-        HotkeyBox.Text = AppSettings.FormatHotkey(_modifiers, _key);
+        HotkeyBox.Text = AppSettings.FormatHotkey(_modifiers.ToCore(), _key.ToCoreName());
     }
 
     private void UpdateScrapListHotkeyBoxText()
     {
-        ScrapListHotkeyBox.Text = AppSettings.FormatHotkey(_scrapListModifiers, _scrapListKey);
+        ScrapListHotkeyBox.Text =
+            AppSettings.FormatHotkey(_scrapListModifiers.ToCore(), _scrapListKey.ToCoreName());
     }
 }

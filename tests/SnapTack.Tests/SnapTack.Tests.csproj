@@ -1,7 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- 本体が WPF の型 (Rect / Int32Rect) を使うため、テストも -windows TFM に合わせる -->
+    <!--
+      WPF 本体 (SnapTack) を参照して検証する分だけを置く。現状は UI 文字列リソース
+      (Resources/Strings.resx と手書きアクセサ) の検証のみ。
+      Windows 非依存のロジックは tests/SnapTack.Core.Tests (net10.0) 側にある。
+      WPF アセンブリを参照するため -windows TFM と UseWPF が必要。
+    -->
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>

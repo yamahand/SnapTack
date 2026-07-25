@@ -1,4 +1,4 @@
-using System.Windows;
+using SnapTack.Primitives;
 
 namespace SnapTack.Capture;
 
@@ -16,8 +16,8 @@ public static class RectMath
     /// <param name="actualHeight">オーバーレイウィンドウの高さ (DIP)。</param>
     /// <param name="pixelWidth">スクリーンショットの幅 (物理px)。</param>
     /// <param name="pixelHeight">スクリーンショットの高さ (物理px)。</param>
-    public static Int32Rect ToPhysicalRect(
-        Rect dipRect, double actualWidth, double actualHeight, int pixelWidth, int pixelHeight)
+    public static PixelRect ToPhysicalRect(
+        DipRect dipRect, double actualWidth, double actualHeight, int pixelWidth, int pixelHeight)
     {
         // 0 以下だと除算で Infinity / NaN となり、int キャスト時に分かりにくい例外になるため
         // ここで弾く (ウィンドウ表示前に呼ばれた場合など)
@@ -37,14 +37,14 @@ public static class RectMath
         int y = (int)Math.Round(dipRect.Y * scaleY);
         int right = (int)Math.Round(dipRect.Right * scaleX);
         int bottom = (int)Math.Round(dipRect.Bottom * scaleY);
-        return new Int32Rect(x, y, Math.Max(0, right - x), Math.Max(0, bottom - y));
+        return new PixelRect(x, y, Math.Max(0, right - x), Math.Max(0, bottom - y));
     }
 
     /// <summary>矩形をスクリーンショットの範囲内 (物理px) に収める。</summary>
     /// <param name="rect">クランプする矩形 (物理px)。</param>
     /// <param name="pixelWidth">スクリーンショットの幅 (物理px)。</param>
     /// <param name="pixelHeight">スクリーンショットの高さ (物理px)。</param>
-    public static Int32Rect ClampToScreenshot(Int32Rect rect, int pixelWidth, int pixelHeight)
+    public static PixelRect ClampToScreenshot(PixelRect rect, int pixelWidth, int pixelHeight)
     {
         // 負だと Math.Clamp が max < min で例外になるため、意図を明示して弾く
         ArgumentOutOfRangeException.ThrowIfNegative(pixelWidth);
@@ -54,6 +54,6 @@ public static class RectMath
         int y = Math.Clamp(rect.Y, 0, pixelHeight);
         int right = Math.Clamp(rect.X + rect.Width, x, pixelWidth);
         int bottom = Math.Clamp(rect.Y + rect.Height, y, pixelHeight);
-        return new Int32Rect(x, y, right - x, bottom - y);
+        return new PixelRect(x, y, right - x, bottom - y);
     }
 }

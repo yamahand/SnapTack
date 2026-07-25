@@ -1,8 +1,7 @@
 using System.IO;
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using SnapTack.Images;
 using SnapTack.Models;
+using SnapTack.Primitives;
 using SnapTack.Views;
 using Xunit;
 
@@ -19,7 +18,7 @@ public class ScrapManagerTests : IDisposable
         try { Directory.Delete(_tempDir, recursive: true); } catch (IOException) { }
     }
 
-    private ScrapStore NewStore() => new(_tempDir);
+    private ScrapStore NewStore() => new(_tempDir, new FakeImageCodec());
 
     /// <summary>実ウィンドウの代わりに使うテスト用ビュー。表示状態と発火した意図を記録する。</summary>
     private sealed class FakeView : IScrapView
@@ -51,8 +50,7 @@ public class ScrapManagerTests : IDisposable
         public void UserStash() => StashRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    private static BitmapSource MakeImage() =>
-        BitmapSource.Create(1, 1, 96, 96, PixelFormats.Bgr24, null, new byte[] { 0, 0, 0 }, 3);
+    private static ICapturedImage MakeImage() => new FakeImage();
 
     /// <summary>生成した FakeView を後から参照できる Manager を組み立てる。</summary>
     private static (ScrapManager Manager, Dictionary<ScrapItem, FakeView> Views) NewManager(
@@ -69,7 +67,7 @@ public class ScrapManagerTests : IDisposable
         return (manager, views);
     }
 
-    private static ScrapItem Add(ScrapManager m) => m.Add(MakeImage(), new Int32Rect(0, 0, 10, 10));
+    private static ScrapItem Add(ScrapManager m) => m.Add(MakeImage(), new PixelRect(0, 0, 10, 10));
 
     [Fact]
     public void 追加したスクラップはPinnedで表示される()

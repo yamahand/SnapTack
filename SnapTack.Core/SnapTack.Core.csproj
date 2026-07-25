@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Windows 非依存のロジック層。WPF (net10.0-windows) の本体から参照する。
+      TFM を net10.0 に保つことが本プロジェクトの存在理由なので、WPF / WinForms を
+      有効化してはいけない (有効にすると Windows 専用に戻り、ロジックが UI に再結合する)。
+    -->
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- 本体 (SnapTack.exe) が既定言語の英語で持つのに合わせる。Core は UI 文字列を持たないが、
+         中立カルチャを明示しておかないと不要な衛星アセンブリ探索が起きる -->
+    <NeutralLanguage>en</NeutralLanguage>
+  </PropertyGroup>
+
+</Project>

@@ -1,5 +1,5 @@
-using System.Windows;
-using System.Windows.Media.Imaging;
+using SnapTack.Images;
+using SnapTack.Primitives;
 
 namespace SnapTack.Models;
 
@@ -16,14 +16,14 @@ namespace SnapTack.Models;
 public sealed class ScrapItem
 {
     // 画像のローダー。null になるのは「読み込み済み」を意味する
-    private Func<BitmapSource>? _imageLoader;
-    private BitmapSource? _image;
+    private Func<ICapturedImage>? _imageLoader;
+    private ICapturedImage? _image;
 
     /// <summary>スクラップの一意な ID。画像ファイル名 (&lt;id&gt;.png) と対応する。</summary>
     public Guid Id { get; }
 
     /// <summary>キャプチャ元の位置・サイズ (物理px、仮想スクリーン座標)。</summary>
-    public Int32Rect PhysicalRect { get; }
+    public PixelRect PhysicalRect { get; }
 
     /// <summary>キャプチャ日時。</summary>
     public DateTimeOffset CapturedAt { get; }
@@ -47,12 +47,12 @@ public sealed class ScrapItem
     /// 最後に表示していた位置 (物理px)。未移動なら null で <see cref="PhysicalRect"/> の位置を使う。
     /// ドラッグのたびには保存せず、ウィンドウを閉じる時とアプリ終了時に書き戻す (SPEC-v1.5 2.4)。
     /// </summary>
-    public Point? WindowPosition { get; set; }
+    public PixelPoint? WindowPosition { get; set; }
 
     /// <summary>
     /// 画像 (物理ピクセル、Freeze 済み)。遅延読み込みのため初回参照時にローダーを実行する。
     /// </summary>
-    public BitmapSource Image
+    public ICapturedImage Image
     {
         get
         {
@@ -69,14 +69,14 @@ public sealed class ScrapItem
     public bool IsImageLoaded => _image is not null;
 
     /// <summary>新規キャプチャから作る。画像は既にメモリ上にある。</summary>
-    public ScrapItem(BitmapSource image, Int32Rect physicalRect)
+    public ScrapItem(ICapturedImage image, PixelRect physicalRect)
         : this(Guid.NewGuid(), physicalRect, DateTimeOffset.Now)
     {
         _image = image;
     }
 
     /// <summary>ID・日時を指定して作る (復元用)。画像は <see cref="SetImageLoader"/> で後付けする。</summary>
-    public ScrapItem(Guid id, Int32Rect physicalRect, DateTimeOffset capturedAt)
+    public ScrapItem(Guid id, PixelRect physicalRect, DateTimeOffset capturedAt)
     {
         Id = id;
         PhysicalRect = physicalRect;
@@ -84,5 +84,5 @@ public sealed class ScrapItem
     }
 
     /// <summary>復元時に画像の遅延ローダーを設定する。<see cref="Image"/> 初回参照でディスクから読む。</summary>
-    public void SetImageLoader(Func<BitmapSource> loader) => _imageLoader = loader;
+    public void SetImageLoader(Func<ICapturedImage> loader) => _imageLoader = loader;
 }

@@ -1,5 +1,5 @@
-using System.Windows;
-using System.Windows.Media.Imaging;
+using SnapTack.Images;
+using SnapTack.Primitives;
 using SnapTack.Views;
 
 namespace SnapTack.Models;
@@ -9,8 +9,8 @@ namespace SnapTack.Models;
 /// 状態遷移 (Pinned/Stashed/Trashed)・二重表示防止・上限管理を担う (M14)。
 /// </summary>
 /// <remarks>
-/// 付箋ウィンドウの生成は <see cref="IScrapView"/> ファクトリ越しに行う。実体は
-/// <see cref="ScrapWindow"/>(STA・実ウィンドウ)だが、抽象を挟むことで本クラスの
+/// 付箋ウィンドウの生成は <see cref="IScrapView"/> ファクトリ越しに行う。実体は UI 層の
+/// ScrapWindow (STA・実ウィンドウ) だが、抽象を挟むことで本クラスの
 /// コレクション管理・状態遷移ロジックをテスト可能にしている (PR #14 の指摘)。
 /// 永続化 (ディスク保存・自動削除) は M16 で足す。
 /// </remarks>
@@ -26,13 +26,10 @@ public sealed class ScrapManager
     // 表示中の付箋ウィンドウ。1 スクラップにつき最大 1 つ (SPEC-v1.5 2.3)
     private readonly Dictionary<ScrapItem, IScrapView> _views = [];
 
-    /// <summary>本番用。付箋ウィンドウとして <see cref="ScrapWindow"/> を生成し、ディスクへ永続化する。</summary>
-    public ScrapManager(SettingsService settings, ScrapStore store)
-        : this(settings, item => new ScrapWindow(item, settings), store)
-    {
-    }
-
-    /// <summary>ビューの生成方法・保存先を差し替えられるコンストラクタ (テスト用)。store は null 可。</summary>
+    /// <summary>
+    /// ビューの生成方法と保存先を受け取る。<paramref name="store"/> が null なら永続化しない
+    /// (テスト・一時運用)。本番の付箋ウィンドウ生成は UI 層がファクトリとして渡す。
+    /// </summary>
     public ScrapManager(SettingsService settings, Func<ScrapItem, IScrapView> viewFactory, ScrapStore? store = null)
     {
         _settings = settings;
@@ -64,7 +61,7 @@ public sealed class ScrapManager
     /// キャプチャ結果から新しいスクラップを作り、付箋 (Pinned) として画面に表示する。
     /// 現行のキャプチャ→付箋の体験をそのまま踏襲する。
     /// </summary>
-    public ScrapItem Add(BitmapSource image, Int32Rect physicalRect)
+    public ScrapItem Add(ICapturedImage image, PixelRect physicalRect)
     {
         var item = new ScrapItem(image, physicalRect); // 既定で Pinned
         _items.Add(item);

@@ -1,5 +1,5 @@
-using System.Windows;
-using System.Windows.Media.Imaging;
+using SnapTack.Images;
+using SnapTack.Primitives;
 using SnapTack.Views;
 
 namespace SnapTack.Capture;
@@ -18,7 +18,7 @@ public sealed class CaptureController
     public bool IsActive { get; private set; }
 
     /// <summary>選択確定時に発火する。引数は切り出した画像と物理ピクセル矩形。</summary>
-    public event Action<BitmapSource, Int32Rect>? SelectionCompleted;
+    public event Action<ICapturedImage, PixelRect>? SelectionCompleted;
 
     public CaptureController(IScreenCapturer capturer)
     {

@@ -1,7 +1,6 @@
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using SnapTack.Images;
 using SnapTack.Models;
+using SnapTack.Primitives;
 using Xunit;
 
 namespace SnapTack.Tests;
@@ -9,14 +8,13 @@ namespace SnapTack.Tests;
 /// <summary>スクラップ 1 件のモデル (SPEC-v1.5 3.2) の検証。</summary>
 public class ScrapItemTests
 {
-    // 1x1 の最小画像。ScrapItem はメタデータ保持のみでピクセルには触れないため内容は問わない
-    private static BitmapSource MakeImage() =>
-        BitmapSource.Create(1, 1, 96, 96, PixelFormats.Bgr24, null, new byte[] { 0, 0, 0 }, 3);
+    // ScrapItem はメタデータ保持のみでピクセルには触れないため、空の画像で足りる
+    private static ICapturedImage MakeImage() => new FakeImage();
 
     [Fact]
     public void 引数2つのコンストラクタはGUIDを採番する()
     {
-        var rect = new Int32Rect(10, 20, 30, 40);
+        var rect = new PixelRect(10, 20, 30, 40);
 
         var a = new ScrapItem(MakeImage(), rect);
         var b = new ScrapItem(MakeImage(), rect);
@@ -29,7 +27,7 @@ public class ScrapItemTests
     public void 引数2つのコンストラクタは画像と矩形を保持する()
     {
         var image = MakeImage();
-        var rect = new Int32Rect(10, 20, 30, 40);
+        var rect = new PixelRect(10, 20, 30, 40);
 
         var item = new ScrapItem(image, rect);
 
@@ -42,7 +40,7 @@ public class ScrapItemTests
     {
         // M16 の復元で Id / CapturedAt を指定して再構築するための経路。画像は遅延ローダーで後付け
         var id = Guid.NewGuid();
-        var rect = new Int32Rect(1, 2, 3, 4);
+        var rect = new PixelRect(1, 2, 3, 4);
         var capturedAt = new DateTimeOffset(2026, 7, 23, 10, 0, 0, TimeSpan.FromHours(9));
 
         var item = new ScrapItem(id, rect, capturedAt);
@@ -58,7 +56,7 @@ public class ScrapItemTests
     {
         var image = MakeImage();
         int calls = 0;
-        var item = new ScrapItem(Guid.NewGuid(), new Int32Rect(0, 0, 1, 1), DateTimeOffset.Now);
+        var item = new ScrapItem(Guid.NewGuid(), new PixelRect(0, 0, 1, 1), DateTimeOffset.Now);
         item.SetImageLoader(() => { calls++; return image; });
 
         Assert.False(item.IsImageLoaded);

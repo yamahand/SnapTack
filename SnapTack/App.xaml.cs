@@ -1,7 +1,8 @@
 using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Input;
 using SnapTack.Capture;
+using SnapTack.Images;
+using SnapTack.Input;
 using SnapTack.Interop;
 using SnapTack.Models;
 using SnapTack.Resources;
@@ -56,8 +57,13 @@ public partial class App : Application
         LanguageService.Apply(_settings.Current.Language);
 
         // 付箋の生成・管理は ScrapManager に集約する (SPEC-v1.5 3.1)。
-        // 全部閉じても OnExplicitShutdown なので常駐は継続する
-        _scraps = new ScrapManager(_settings, new ScrapStore());
+        // 全部閉じても OnExplicitShutdown なので常駐は継続する。
+        // Manager は Core (Windows 非依存) にあるため、付箋ウィンドウの生成と PNG の
+        // 読み書きは WPF 側の実装をここで注入する
+        _scraps = new ScrapManager(
+            _settings,
+            item => new ScrapWindow(item, _settings),
+            new ScrapStore(new WpfImageCodec()));
         _capture.SelectionCompleted += (image, physicalRect) => _scraps.Add(image, physicalRect);
         // 保存済みスクラップを復元する (Pinned を画面へ、期限切れゴミ箱を掃除)。SPEC-v1.5 2.4
         _scraps.RestoreFromDisk();
@@ -124,14 +130,15 @@ public partial class App : Application
     }
 
     /// <summary>指定ホットキーを登録し、失敗したら用途に応じた案内で警告して継続する。</summary>
-    private static void RegisterHotkeyOrWarn(GlobalHotkey? hotkey, ModifierKeys modifiers, Key key,
+    private static void RegisterHotkeyOrWarn(GlobalHotkey? hotkey, HotkeyModifier modifiers, string key,
         string displayText, string fallbackText)
     {
         if (hotkey is null)
         {
             return;
         }
-        if (!hotkey.Register(modifiers, key))
+        // 設定は Core のプラットフォーム非依存な表現で持つため、RegisterHotKey へ渡す直前に変換する
+        if (!hotkey.Register(modifiers.ToWpf(), HotkeyKeyMap.ToWpfKey(key)))
         {
             MessageBox.Show(
                 string.Format(Strings.HotkeyRegisterFailedFormat, displayText, fallbackText),
