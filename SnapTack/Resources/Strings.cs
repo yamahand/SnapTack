@@ -37,13 +37,17 @@ internal static class Strings
     public static string MenuCloseGestureText => Get(nameof(MenuCloseGestureText));
     public static string MenuSavePngText => Get(nameof(MenuSavePngText));
     public static string MenuSavePngGestureText => Get(nameof(MenuSavePngGestureText));
+    public static string MenuQuickSaveText => Get(nameof(MenuQuickSaveText));
+    public static string MenuQuickSaveGestureText => Get(nameof(MenuQuickSaveGestureText));
     public static string MenuOpacityText => Get(nameof(MenuOpacityText));
     public static string MenuDiceText => Get(nameof(MenuDiceText));
     public static string MenuRestoreText => Get(nameof(MenuRestoreText));
     public static string MenuDiceGestureText => Get(nameof(MenuDiceGestureText));
-    public static string SaveFileFilter => Get(nameof(SaveFileFilter));
+    public static string SaveFilterPng => Get(nameof(SaveFilterPng));
+    public static string SaveFilterJpeg => Get(nameof(SaveFilterJpeg));
+    public static string SaveFilterBmp => Get(nameof(SaveFilterBmp));
     public static string ClipboardCopyFailedMessage => Get(nameof(ClipboardCopyFailedMessage));
-    public static string SavePngFailedMessage => Get(nameof(SavePngFailedMessage));
+    public static string SaveImageFailedMessage => Get(nameof(SaveImageFailedMessage));
 
     // ===== 設定画面 (SettingsWindow.xaml.cs) =====
     public static string WindowTitle => Get(nameof(WindowTitle));
@@ -62,6 +66,12 @@ internal static class Strings
     public static string MaxTrashedScrapsLabelText => Get(nameof(MaxTrashedScrapsLabelText));
     public static string TrashRetentionLabelText => Get(nameof(TrashRetentionLabelText));
     public static string RestoreOnStartupText => Get(nameof(RestoreOnStartupText));
+    public static string SaveFormatLabelText => Get(nameof(SaveFormatLabelText));
+    public static string JpegQualityLabelText => Get(nameof(JpegQualityLabelText));
+    public static string QuickSaveDirectoryLabelText => Get(nameof(QuickSaveDirectoryLabelText));
+    public static string BrowseButtonText => Get(nameof(BrowseButtonText));
+    public static string QuickSaveFolderDialogTitle => Get(nameof(QuickSaveFolderDialogTitle));
+    public static string CopyPathAfterSaveText => Get(nameof(CopyPathAfterSaveText));
 
     // ===== アプリ全体のエラー (App.xaml.cs) =====
     public static string HotkeyRegisterFailedFormat => Get(nameof(HotkeyRegisterFailedFormat));
@@ -87,4 +97,8 @@ internal static class Strings
     public static string StateStashedText => Get(nameof(StateStashedText));
     public static string LayoutGridText => Get(nameof(LayoutGridText));
     public static string LayoutListText => Get(nameof(LayoutListText));
+
+    // ===== スクラップの作成方法の追加 (TrayIcon.cs / ScrapListWindow.xaml.cs) =====
+    public static string MenuPasteText => Get(nameof(MenuPasteText));
+    public static string PasteFailedMessage => Get(nameof(PasteFailedMessage));
 }
