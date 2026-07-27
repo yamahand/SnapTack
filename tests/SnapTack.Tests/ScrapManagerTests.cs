@@ -364,7 +364,7 @@ public class ScrapManagerTests : IDisposable
     [Fact]
     public void 位置を指定した外部画像はその位置に配置される()
     {
-        // 付箋上の Ctrl+V で「元の付箋からずらして出す」ための経路 (SPEC-v1.6 3.6)。
+        // 付箋上の Ctrl+V で「元の付箋からずらして出す」ための経路 (SPEC-v1.6 3.5)。
         // プライマリモニタ内の座標を使い、クランプが働かない条件で確認する
         var (m, _) = NewManager();
 
