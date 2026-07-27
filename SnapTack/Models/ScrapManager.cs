@@ -93,7 +93,7 @@ public sealed class ScrapManager
 
     /// <summary>
     /// 外部画像から、左上位置を指定してスクラップを作る (物理px、仮想スクリーン座標)。
-    /// 付箋上の Ctrl+V のように「元の付箋を基準にずらして出す」用途で使う (SPEC-v1.6 3.6)。
+    /// 付箋上の Ctrl+V のように「元の付箋を基準にずらして出す」用途で使う (SPEC-v1.6 3.5)。
     /// はみ出す場合は指定位置のあるモニタ内へクランプする。
     /// </summary>
     public ScrapItem AddExternalAt(BitmapSource image, int x, int y)
@@ -106,7 +106,7 @@ public sealed class ScrapManager
     }
 
     /// <summary>
-    /// クリップボードの画像を、指定位置を左上としてスクラップ化する (SPEC-v1.6 3.6)。
+    /// クリップボードの画像を、指定位置を左上としてスクラップ化する (SPEC-v1.6 3.5)。
     /// 複数取れた場合は 1 枚ずつずらして並べる。貼るものが無ければ何もしない。
     /// </summary>
     /// <returns>作成した件数。</returns>
@@ -218,7 +218,7 @@ public sealed class ScrapManager
         view.TrashRequested += (_, _) => Trash(item);
         view.StashRequested += (_, _) => Stash(item);
         // 付箋上の Ctrl+V。生成を Manager 経由に保つため、位置だけ受け取ってここで作る
-        // (SPEC-v1.6 3.6)。貼るものが無ければ何もしない
+        // (SPEC-v1.6 3.5)。貼るものが無ければ何もしない
         view.PasteRequested += (_, position) => PasteFromClipboardAt(position);
         // どの閉じ方 (ユーザー操作・Manager からの明示閉じ) でも対応を解除する
         view.Closed += (_, _) => _views.Remove(item);

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -17,7 +18,10 @@ namespace SnapTack.Models;
 /// </remarks>
 public sealed class ImageSaver
 {
-    // 言語非依存の文字列。日時書式はカルチャに依らずファイル名として安定させる
+    // 言語非依存の文字列。日時書式はカルチャに依らずファイル名として安定させる。
+    // 整形時は必ず InvariantCulture を渡すこと (FormatFileName)。CurrentCulture のままだと
+    // 和暦以外のカレンダー (ar-SA=ヒジュラ暦、th-TH=仏暦 等) が適用され、
+    // SnapTack_14480213_... のように西暦でない名前になる
     private const string AppName = "SnapTack";
     private const string FileNameFormat = "SnapTack_{0:yyyyMMdd_HHmmss}";
 
@@ -42,7 +46,7 @@ public sealed class ImageSaver
 
         var dialog = new SaveFileDialog
         {
-            FileName = string.Format(FileNameFormat, timestamp) + ImageFormatInfo.GetExtension(format),
+            FileName = FormatFileName(timestamp) + ImageFormatInfo.GetExtension(format),
             DefaultExt = ImageFormatInfo.GetExtension(format),
             Filter = ImageFormatInfo.BuildDialogFilter(),
             FilterIndex = ImageFormatInfo.GetFilterIndex(format), // 既定の選択を設定値に合わせる
@@ -158,12 +162,25 @@ public sealed class ImageSaver
     }
 
     /// <summary>
+    /// 日時から拡張子なしのファイル名を作る (SPEC-v1.6 2.2 の <c>SnapTack_yyyyMMdd_HHmmss</c>)。
+    /// </summary>
+    /// <remarks>
+    /// <see cref="CultureInfo.InvariantCulture"/> を明示するのが要点。既定の
+    /// <see cref="CultureInfo.CurrentCulture"/> では西暦以外のカレンダーを持つ言語
+    /// (ar-SA=ヒジュラ暦、th-TH=仏暦、fa-IR=イラン暦) で年月日が変わってしまい、
+    /// 特に即保存はユーザーが名前を確認する機会が無いため実害が大きい。
+    /// ダイアログ保存と即保存で同じ規則を保つため、両者ともここを通す。
+    /// </remarks>
+    internal static string FormatFileName(DateTime timestamp) =>
+        string.Format(CultureInfo.InvariantCulture, FileNameFormat, timestamp);
+
+    /// <summary>
     /// 即保存先に衝突しないフルパスを組み立てる。同名があれば <c>_2</c>, <c>_3</c> … を付ける。
     /// 上限まで衝突した場合は null (異常事態。保存失敗として扱う)。
     /// </summary>
     private static string? BuildUniquePath(string directory, DateTime timestamp, SaveImageFormat format)
     {
-        string baseName = string.Format(FileNameFormat, timestamp);
+        string baseName = FormatFileName(timestamp);
         string extension = ImageFormatInfo.GetExtension(format);
 
         string path = Path.Combine(directory, baseName + extension);

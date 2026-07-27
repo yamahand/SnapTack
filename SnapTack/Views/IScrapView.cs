@@ -19,7 +19,7 @@ public interface IScrapView
     event EventHandler? StashRequested;
 
     /// <summary>
-    /// ユーザーが付箋上で Ctrl+V を押した (SPEC-v1.6 3.6)。
+    /// ユーザーが付箋上で Ctrl+V を押した (SPEC-v1.6 3.5)。
     /// 引数は新しい付箋を出す左上位置 (物理px、仮想スクリーン座標)。
     /// </summary>
     event EventHandler<System.Windows.Point>? PasteRequested;

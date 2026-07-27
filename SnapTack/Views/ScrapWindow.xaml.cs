@@ -24,7 +24,7 @@ public partial class ScrapWindow : Window, IScrapView
     public event EventHandler? StashRequested;
 
     /// <summary>
-    /// ユーザーが付箋上で Ctrl+V を押した (SPEC-v1.6 3.6)。引数は新しい付箋を出す
+    /// ユーザーが付箋上で Ctrl+V を押した (SPEC-v1.6 3.5)。引数は新しい付箋を出す
     /// 左上位置 (物理px)。実際の生成は <see cref="Models.ScrapManager"/> が行う。
     /// </summary>
     public event EventHandler<Point>? PasteRequested;
@@ -37,7 +37,7 @@ public partial class ScrapWindow : Window, IScrapView
     private const double DiceSizeDip = 48.0;
 
     // Ctrl+V で作る付箋を元の付箋からずらす量 (物理px)。重ねると置き換えたように
-    // 見えるため、少しずらして「隣に増えた」と分かるようにする (SPEC-v1.6 3.6)
+    // 見えるため、少しずらして「隣に増えた」と分かるようにする (SPEC-v1.6 3.5)
     private const int PasteOffsetPx = 24;
 
     // 不透明度の範囲・ステップ (SPEC-v1.x 2.2) は OpacityLevel が持つ
@@ -197,7 +197,7 @@ public partial class ScrapWindow : Window, IScrapView
         var quickSaveItem = new MenuItem { Header = Strings.MenuQuickSaveText, InputGestureText = Strings.MenuQuickSaveGestureText };
         quickSaveItem.Click += (_, _) => QuickSave();
 
-        // クリップボードの画像を新しい付箋にする (SPEC-v1.6 3.6)。
+        // クリップボードの画像を新しい付箋にする (SPEC-v1.6 3.5)。
         // キーだけだと気付かれにくいのでメニューにも出す
         var pasteItem = new MenuItem { Header = Strings.MenuPasteScrapText, InputGestureText = Strings.MenuPasteScrapGestureText };
         pasteItem.Click += (_, _) => RequestPaste();
@@ -384,7 +384,7 @@ public partial class ScrapWindow : Window, IScrapView
     }
 
     /// <summary>
-    /// クリップボードの画像を新しい付箋にするよう要求する (SPEC-v1.6 3.6)。
+    /// クリップボードの画像を新しい付箋にするよう要求する (SPEC-v1.6 3.5)。
     /// この付箋から少しずらした位置に出すことで「隣に増えた」と分かるようにする。
     /// </summary>
     private void RequestPaste()
