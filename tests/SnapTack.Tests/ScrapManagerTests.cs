@@ -308,6 +308,70 @@ public class ScrapManagerTests : IDisposable
         Assert.Contains(c, m.Items);
     }
 
+    // ===== 外部画像からの作成 (M19。SPEC-v1.6 3.4) =====
+
+    /// <summary>指定サイズの画像を作る (物理ピクセル)。</summary>
+    private static BitmapSource MakeImage(int width, int height)
+    {
+        int stride = width * 3;
+        return BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgr24, null,
+            new byte[stride * height], stride);
+    }
+
+    [Fact]
+    public void 外部画像はPinnedで表示され管理下に入る()
+    {
+        // 作成経路が増えても中央管理を崩さないこと (SPEC-v1.5 3.1 / SPEC-v1.6 3.1)
+        var (m, views) = NewManager();
+
+        var item = m.AddExternal(MakeImage(20, 10));
+
+        Assert.Equal(ScrapState.Pinned, item.State);
+        Assert.True(views[item].IsOpen);
+        Assert.Contains(item, m.Items);
+    }
+
+    [Fact]
+    public void 外部画像のサイズは元画像の物理ピクセルと一致する()
+    {
+        // 等倍表示の原則を維持し、大きい画像でも縮小しない (SPEC-v1.6 3.4)
+        var (m, _) = NewManager();
+
+        var item = m.AddExternal(MakeImage(123, 45));
+
+        Assert.Equal(123, item.PhysicalRect.Width);
+        Assert.Equal(45, item.PhysicalRect.Height);
+    }
+
+    [Fact]
+    public void 外部画像も永続化され別Managerで復元される()
+    {
+        var store = NewStore();
+        var (m, _) = NewManager(store: store);
+        var added = m.AddExternal(MakeImage(8, 6));
+
+        var (m2, _) = NewManager(store: NewStore());
+        m2.RestoreFromDisk();
+
+        var one = Assert.Single(m2.Items);
+        Assert.Equal(added.Id, one.Id);
+        Assert.Equal(8, one.PhysicalRect.Width);
+        Assert.Equal(6, one.PhysicalRect.Height);
+    }
+
+    [Fact]
+    public void 外部画像も上限管理の対象になる()
+    {
+        // キャプチャ由来と同じ経路を通ること (Add 経由なので EnforceLimits が効く)
+        var (m, views) = NewManager(settings: new AppSettings { MaxScraps = 2 });
+        var old = m.AddExternal(MakeImage(4, 4));
+        m.Stash(old); // 削除候補 (Stashed) にしておく
+        m.AddExternal(MakeImage(4, 4));
+        m.AddExternal(MakeImage(4, 4));
+
+        Assert.DoesNotContain(old, m.Items);
+    }
+
     // ===== 永続化 (M16) =====
 
     [Fact]

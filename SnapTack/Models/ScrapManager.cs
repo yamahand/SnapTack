@@ -77,6 +77,43 @@ public sealed class ScrapManager
         return item;
     }
 
+    /// <summary>
+    /// 外部画像 (クリップボード / D&amp;D) からスクラップを作り、付箋として画面に表示する (SPEC-v1.6 3.4)。
+    /// キャプチャ由来と違い元位置が無いため、カーソル位置を左上として配置する。
+    /// </summary>
+    /// <remarks>
+    /// 生成を <see cref="Add"/> と同じ経路に通すことで、作成方法が増えても中央管理・永続化を
+    /// 崩さない (SPEC-v1.5 3.1)。等倍表示の原則は維持し、大きい画像でも縮小しない。
+    /// </remarks>
+    public ScrapItem AddExternal(BitmapSource image)
+    {
+        // 画像の物理ピクセルサイズ。等倍で貼るため DIP へは変換しない (SPEC 4.4)
+        int width = image.PixelWidth;
+        int height = image.PixelHeight;
+        var position = GetCursorPlacement(width, height);
+        return Add(image, new Int32Rect(position.X, position.Y, width, height));
+    }
+
+    /// <summary>
+    /// カーソル位置を左上とする配置座標 (物理px) を返す。画面外へはみ出す場合は
+    /// カーソルのあるモニタ内へクランプする (SPEC-v1.6 3.4)。
+    /// </summary>
+    /// <remarks>
+    /// WinForms の <c>Cursor.Position</c> / <c>Screen</c> はいずれも物理ピクセルを返すため、
+    /// DPI 変換を挟まずにそのまま扱える。
+    /// </remarks>
+    private static (int X, int Y) GetCursorPlacement(int width, int height)
+    {
+        var cursor = System.Windows.Forms.Cursor.Position; // 物理px (仮想スクリーン座標)
+        var bounds = System.Windows.Forms.Screen.FromPoint(cursor).Bounds; // 物理px
+
+        // 画像がモニタより大きい場合、Max 側が優先されて左上がモニタ原点に揃う
+        // (右下がはみ出す)。等倍表示を崩さないため縮小はしない
+        int x = Math.Max(bounds.Left, Math.Min(cursor.X, bounds.Right - width));
+        int y = Math.Max(bounds.Top, Math.Min(cursor.Y, bounds.Bottom - height));
+        return (x, y);
+    }
+
     /// <summary>スクラップを画面に表示する (Pinned へ)。閉じていたウィンドウを開き直す用途も兼ねる。</summary>
     public void Show(ScrapItem item)
     {

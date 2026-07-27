@@ -323,4 +323,59 @@ public partial class ScrapListWindow : Window
         }
         _saver.QuickSave(targets.Select(item => (item.Image, item.CapturedAt.LocalDateTime)));
     }
+
+    // ===== ドラッグ&ドロップによるスクラップ作成 (SPEC-v1.6 3.3) =====
+
+    /// <summary>対応拡張子のファイルを含むドロップのみ受け付け、それ以外はカーソルで拒否を示す。</summary>
+    private void OnListDragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = TryGetDroppedPaths(e, out var paths) && ImageFileLoader.ContainsSupportedFile(paths)
+            ? DragDropEffects.Copy
+            : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    /// <summary>ドロップされた画像ファイルをすべてスクラップ化する (SPEC-v1.6 3.3)。</summary>
+    private void OnListDrop(object sender, DragEventArgs e)
+    {
+        e.Handled = true;
+        if (!TryGetDroppedPaths(e, out var paths))
+        {
+            return;
+        }
+
+        var images = ImageFileLoader.LoadFiles(paths);
+        if (images.Count == 0)
+        {
+            // 対応拡張子が 1 つも無かった場合はドロップ自体が受け付けられていない (DragOver で拒否)。
+            // ここに来るのは「拡張子は対応だが読めなかった」場合なので通知する (SPEC-v1.6 3.2)
+            MessageBox.Show(this, Strings.PasteFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        foreach (var image in images)
+        {
+            _manager.AddExternal(image);
+        }
+
+        // 作られたスクラップは常に Pinned なので、ゴミ箱タブのままだと結果が見えない。
+        // スクラップタブへ切り替えて取り込み結果を見せる (SPEC-v1.6 3.3)
+        ScrapsTab.IsChecked = true;
+    }
+
+    /// <summary>ドロップデータからファイルパスの配列を取り出す。FileDrop でなければ false。</summary>
+    private static bool TryGetDroppedPaths(DragEventArgs e, out string[] paths)
+    {
+        paths = [];
+        if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            return false;
+        }
+        if (e.Data.GetData(DataFormats.FileDrop) is not string[] dropped)
+        {
+            return false;
+        }
+        paths = dropped;
+        return true;
+    }
 }
