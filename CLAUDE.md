@@ -7,7 +7,8 @@
 開発ドキュメントは `docs/` に集約している(ルートに置くのは README と本書のみ)。
 
 - 仕様: `docs/SPEC.md` (v1.0) + `docs/SPEC-v1.x.md` (v1.1〜v1.4) + `docs/SPEC-v1.5.md` (v1.5)
-- 実装順: `docs/MILESTONES.md` (M1〜M6) + `docs/MILESTONES-v1.x.md` (M7〜M12) + `docs/MILESTONES-v1.5.md` (M13〜)
+- 実装順: `docs/MILESTONES.md` (M1〜M6) + `docs/MILESTONES-v1.x.md` (M7〜M12) + `docs/MILESTONES-v1.5.md` (M13〜M17) + `docs/MILESTONES-v1.6.md` (M18〜, **草案**)
+- 調査資料: `docs/SETUNA2-gap-analysis.md` (SETUNA2 との機能差分)
 - CI 方針: `docs/CI.md`
 
 ## 技術スタック(変更禁止)
