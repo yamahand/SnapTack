@@ -1,10 +1,7 @@
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media.Imaging;
-using Microsoft.Win32;
 using SnapTack.Models;
 using SnapTack.Resources;
 
@@ -18,10 +15,10 @@ public partial class ScrapListWindow : Window
 {
     // 言語非依存の文字列
     private const string AppName = "SnapTack";
-    private const string SaveFileNameFormat = "SnapTack_{0:yyyyMMdd_HHmmss}.png";
 
     private readonly ScrapManager _manager;
     private readonly SettingsService _settings;
+    private readonly ImageSaver _saver; // 保存処理 (形式選択・即保存。SPEC-v1.6 2)
 
     // ScrapItem ごとの表示ラッパーをキャッシュする。サムネイルは元画像から決まり不変なので、
     // Refresh のたびに作り直すと縮小デコードが再発生して重くなる (一括操作で顕著)。
@@ -33,6 +30,7 @@ public partial class ScrapListWindow : Window
         InitializeComponent();
         _manager = manager;
         _settings = settings;
+        _saver = new ImageSaver(settings);
 
         Title = Strings.ScrapListTitle;
         ScrapsTab.Content = Strings.ScrapsTabText;
@@ -172,7 +170,8 @@ public partial class ScrapListWindow : Window
             AddMenuItem(menu, Strings.ListMenuRestoreText, ShowSelected);
             menu.Items.Add(new Separator());
             AddMenuItem(menu, Strings.MenuCopyText, CopySelected);
-            AddMenuItem(menu, Strings.MenuSavePngText, SaveSelectedAsPng);
+            AddMenuItem(menu, Strings.MenuSavePngText, SaveSelectedWithDialog);
+            AddMenuItem(menu, Strings.MenuQuickSaveText, QuickSaveSelected);
             menu.Items.Add(new Separator());
             AddMenuItem(menu, Strings.ListMenuDeleteText, DeleteSelected);
         }
@@ -182,7 +181,8 @@ public partial class ScrapListWindow : Window
             AddMenuItem(menu, Strings.ListMenuHideText, HideSelected);
             menu.Items.Add(new Separator());
             AddMenuItem(menu, Strings.MenuCopyText, CopySelected);
-            AddMenuItem(menu, Strings.MenuSavePngText, SaveSelectedAsPng);
+            AddMenuItem(menu, Strings.MenuSavePngText, SaveSelectedWithDialog);
+            AddMenuItem(menu, Strings.MenuQuickSaveText, QuickSaveSelected);
             menu.Items.Add(new Separator());
             AddMenuItem(menu, Strings.ListMenuTrashText, TrashSelected);
         }
@@ -298,56 +298,84 @@ public partial class ScrapListWindow : Window
         }
     }
 
-    /// <summary>選択スクラップを PNG 保存する。複数選択時は先頭の 1 枚 (付箋側と同じ挙動)。</summary>
-    private void SaveSelectedAsPng()
+    /// <summary>
+    /// 選択スクラップをダイアログで保存する。複数選択時は先頭の 1 枚 (付箋側と同じ挙動)。
+    /// ダイアログを選択数ぶん連続で出すのは煩わしいため一括にはしない (SPEC-v1.6 2.2)。
+    /// </summary>
+    private void SaveSelectedWithDialog()
     {
-        var first = SelectedScraps().FirstOrDefault();
-        if (first is null)
+        if (SelectedScraps().FirstOrDefault() is not { } first)
         {
             return;
         }
-        var dialog = new SaveFileDialog
-        {
-            FileName = string.Format(SaveFileNameFormat, first.CapturedAt.LocalDateTime),
-            DefaultExt = ".png",
-            Filter = Strings.SaveFileFilter,
-            InitialDirectory = GetInitialSaveDirectory(),
-        };
-        if (dialog.ShowDialog(this) != true)
-        {
-            return;
-        }
-
-        string? savedDirectory;
-        try
-        {
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(first.Image));
-            using (var stream = File.Create(dialog.FileName))
-            {
-                encoder.Save(stream);
-            }
-            savedDirectory = Path.GetDirectoryName(dialog.FileName);
-        }
-        catch (Exception ex) when (
-            ex is IOException or UnauthorizedAccessException or ExternalException
-                or ArgumentException or NotSupportedException or System.Security.SecurityException)
-        {
-            MessageBox.Show(Strings.SavePngFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        _settings.Current.LastSaveDirectory = savedDirectory;
-        _settings.Save();
+        _saver.SaveWithDialog(this, first.Image, first.CapturedAt.LocalDateTime);
     }
 
-    private string GetInitialSaveDirectory()
+    /// <summary>
+    /// 選択スクラップをダイアログ無しで保存する。こちらは**選択中の全件**が対象 (SPEC-v1.6 2.2)。
+    /// </summary>
+    private void QuickSaveSelected()
     {
-        string? last = _settings.Current.LastSaveDirectory;
-        if (!string.IsNullOrEmpty(last) && Directory.Exists(last))
+        var targets = SelectedScraps();
+        if (targets.Count == 0)
         {
-            return last;
+            return;
         }
-        return Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+        _saver.QuickSave(targets.Select(item => (item.Image, item.CapturedAt.LocalDateTime)));
+    }
+
+    // ===== ドラッグ&ドロップによるスクラップ作成 (SPEC-v1.6 3.3) =====
+
+    /// <summary>対応拡張子のファイルを含むドロップのみ受け付け、それ以外はカーソルで拒否を示す。</summary>
+    private void OnListDragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = TryGetDroppedPaths(e, out var paths) && ImageFileLoader.ContainsSupportedFile(paths)
+            ? DragDropEffects.Copy
+            : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    /// <summary>ドロップされた画像ファイルをすべてスクラップ化する (SPEC-v1.6 3.3)。</summary>
+    private void OnListDrop(object sender, DragEventArgs e)
+    {
+        e.Handled = true;
+        if (!TryGetDroppedPaths(e, out var paths))
+        {
+            return;
+        }
+
+        var images = ImageFileLoader.LoadFiles(paths);
+        if (images.Count == 0)
+        {
+            // 対応拡張子が 1 つも無かった場合はドロップ自体が受け付けられていない (DragOver で拒否)。
+            // ここに来るのは「拡張子は対応だが読めなかった」場合なので通知する (SPEC-v1.6 3.2)
+            MessageBox.Show(this, Strings.PasteFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        foreach (var image in images)
+        {
+            _manager.AddExternal(image);
+        }
+
+        // 作られたスクラップは常に Pinned なので、ゴミ箱タブのままだと結果が見えない。
+        // スクラップタブへ切り替えて取り込み結果を見せる (SPEC-v1.6 3.3)
+        ScrapsTab.IsChecked = true;
+    }
+
+    /// <summary>ドロップデータからファイルパスの配列を取り出す。FileDrop でなければ false。</summary>
+    private static bool TryGetDroppedPaths(DragEventArgs e, out string[] paths)
+    {
+        paths = [];
+        if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            return false;
+        }
+        if (e.Data.GetData(DataFormats.FileDrop) is not string[] dropped)
+        {
+            return false;
+        }
+        paths = dropped;
+        return true;
     }
 }

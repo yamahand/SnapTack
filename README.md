@@ -14,8 +14,10 @@ Clip part of a document, an error message, or a reference image in an instant, p
 ## Features
 
 - Press **Ctrl+Shift+Z** to freeze the screen, drag to select a region, and the selection stays on your desktop as a sticky note
-- Notes are always on top. Drag to move, `Ctrl+C` to copy, `Ctrl+S` to save as PNG, middle-click to close
+- Notes are always on top. Drag to move, `Ctrl+C` to copy, `Ctrl+S` to save, middle-click to close
 - Scroll the mouse wheel to change opacity, double-click to fold a note into a small tile to save space
+- **Save as PNG, JPEG, or BMP** (JPEG quality is adjustable), or use **quick save** to drop a timestamped file into a folder of your choice with no dialog at all. Optionally copies the saved path to the clipboard
+- **Make notes from images you already have** — paste from the clipboard via the tray menu or `Ctrl+V` on a note, or drop image files onto the scrap list
 - **Scrap list** — open it with **Ctrl+Shift+L** to browse every scrap as a thumbnail. Show or hide notes, copy or save them, and recover closed ones from the trash
 - **Scraps persist across restarts.** Pinned notes come back where you left them next time you launch. Closing a note sends it to the trash instead of losing it, and the trash auto-clears after a configurable number of days
 - Multi-monitor support. Captures at 1:1 physical pixels, with no positional drift even across mixed DPI scaling such as 125% / 150% (Per-Monitor V2 aware)
@@ -61,11 +63,13 @@ Click **More info** and then **Run anyway** to start the app.
 |---|---|
 | Left-drag | Move |
 | `Ctrl+C` | Copy the image to the clipboard |
-| `Ctrl+S` | Save as a PNG file |
+| `Ctrl+V` | Turn the clipboard image into a new note, offset from this one |
+| `Ctrl+S` | Save to a file (choose PNG / JPEG / BMP in the dialog) |
+| `Ctrl+Shift+S` | Quick save — no dialog, straight to your quick save folder |
 | Mouse wheel | Change opacity (20–100%) |
 | Double-click | Fold into a tile / restore |
 | Middle-click | Close |
-| Right-click | Menu (copy / save as PNG / opacity / fold / close / hide to list) |
+| Right-click | Menu (copy / paste / save / quick save / opacity / fold / close / hide to list) |
 
 You can pin as many notes as you like at once. Closing them all leaves the app running in the tray — quit from the tray menu's **Exit**.
 
@@ -78,9 +82,20 @@ Open the scrap list with **Ctrl+Shift+L** (configurable) or the tray menu. It sh
 | Double-click / `Enter` | Show the scrap on screen and bring it to the front |
 | `Ctrl+C` | Copy the selected scrap image |
 | `Delete` | Move to the trash (or permanently delete, with confirmation, when already in the trash) |
-| Right-click | Menu (show / hide / copy / save as PNG / move to trash — or restore / delete permanently in the trash) |
+| Right-click | Menu (show / hide / copy / save / quick save / move to trash — or restore / delete permanently in the trash) |
 
 Closing a note sends it to the trash rather than discarding it, so an accidental middle-click is recoverable. Scraps and the trash are capped (200 and 50 by default), and trash older than 30 days is cleared automatically; all three limits are configurable in the settings window, along with whether pinned notes are restored on startup.
+
+### Making notes without capturing
+
+You don't have to capture to create a scrap:
+
+| How | Where |
+|---|---|
+| **Paste from clipboard** | Tray menu, or `Ctrl+V` while a note has focus |
+| **Drag and drop** | Drop image files anywhere on the scrap list window |
+
+Pasting accepts a copied image, copied files, or text that happens to be an image file path. Supported formats are PNG, JPEG, BMP, GIF, and TIFF — plus WebP and AVIF when the matching Windows codec is installed (they ship with Windows 11 but can be removed; files are skipped rather than failing if the codec is missing).
 
 ## Building
 

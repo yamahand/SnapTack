@@ -77,6 +77,76 @@ public sealed class ScrapManager
         return item;
     }
 
+    /// <summary>
+    /// 外部画像 (クリップボード / D&amp;D) からスクラップを作り、付箋として画面に表示する (SPEC-v1.6 3.4)。
+    /// キャプチャ由来と違い元位置が無いため、カーソル位置を左上として配置する。
+    /// </summary>
+    /// <remarks>
+    /// 生成を <see cref="Add"/> と同じ経路に通すことで、作成方法が増えても中央管理・永続化を
+    /// 崩さない (SPEC-v1.5 3.1)。等倍表示の原則は維持し、大きい画像でも縮小しない。
+    /// </remarks>
+    public ScrapItem AddExternal(BitmapSource image)
+    {
+        var cursor = System.Windows.Forms.Cursor.Position; // 物理px (仮想スクリーン座標)
+        return AddExternalAt(image, cursor.X, cursor.Y);
+    }
+
+    /// <summary>
+    /// 外部画像から、左上位置を指定してスクラップを作る (物理px、仮想スクリーン座標)。
+    /// 付箋上の Ctrl+V のように「元の付箋を基準にずらして出す」用途で使う (SPEC-v1.6 3.5)。
+    /// はみ出す場合は指定位置のあるモニタ内へクランプする。
+    /// </summary>
+    public ScrapItem AddExternalAt(BitmapSource image, int x, int y)
+    {
+        // 画像の物理ピクセルサイズ。等倍で貼るため DIP へは変換しない (SPEC 4.4)
+        int width = image.PixelWidth;
+        int height = image.PixelHeight;
+        var position = ClampIntoMonitor(x, y, width, height);
+        return Add(image, new Int32Rect(position.X, position.Y, width, height));
+    }
+
+    /// <summary>
+    /// クリップボードの画像を、指定位置を左上としてスクラップ化する (SPEC-v1.6 3.5)。
+    /// 複数取れた場合は 1 枚ずつずらして並べる。貼るものが無ければ何もしない。
+    /// </summary>
+    /// <returns>作成した件数。</returns>
+    public int PasteFromClipboardAt(Point position)
+    {
+        var images = ImageFileLoader.LoadFromClipboard();
+        int index = 0;
+        foreach (var image in images)
+        {
+            // 複数枚を同じ位置に重ねると 1 枚しか無いように見えるため、少しずつずらす
+            int offset = index * PasteCascadeOffsetPx;
+            AddExternalAt(image, (int)position.X + offset, (int)position.Y + offset);
+            index++;
+        }
+        return index;
+    }
+
+    // 複数枚をまとめて貼る際に 1 枚ごとにずらす量 (物理px)
+    private const int PasteCascadeOffsetPx = 24;
+
+    /// <summary>
+    /// 指定位置を左上とする配置座標 (物理px) を、その位置のあるモニタ内へ収めて返す
+    /// (SPEC-v1.6 3.4)。
+    /// </summary>
+    /// <remarks>
+    /// WinForms の <c>Cursor.Position</c> / <c>Screen</c> はいずれも物理ピクセルを返すため、
+    /// DPI 変換を挟まずにそのまま扱える。
+    /// </remarks>
+    private static (int X, int Y) ClampIntoMonitor(int x, int y, int width, int height)
+    {
+        var bounds = System.Windows.Forms.Screen
+            .FromPoint(new System.Drawing.Point(x, y)).Bounds; // 物理px
+
+        // 画像がモニタより大きい場合、Max 側が優先されて左上がモニタ原点に揃う
+        // (右下がはみ出す)。等倍表示を崩さないため縮小はしない
+        int clampedX = Math.Max(bounds.Left, Math.Min(x, bounds.Right - width));
+        int clampedY = Math.Max(bounds.Top, Math.Min(y, bounds.Bottom - height));
+        return (clampedX, clampedY);
+    }
+
     /// <summary>スクラップを画面に表示する (Pinned へ)。閉じていたウィンドウを開き直す用途も兼ねる。</summary>
     public void Show(ScrapItem item)
     {
@@ -147,6 +217,9 @@ public sealed class ScrapManager
         var view = _viewFactory(item);
         view.TrashRequested += (_, _) => Trash(item);
         view.StashRequested += (_, _) => Stash(item);
+        // 付箋上の Ctrl+V。生成を Manager 経由に保つため、位置だけ受け取ってここで作る
+        // (SPEC-v1.6 3.5)。貼るものが無ければ何もしない
+        view.PasteRequested += (_, position) => PasteFromClipboardAt(position);
         // どの閉じ方 (ユーザー操作・Manager からの明示閉じ) でも対応を解除する
         view.Closed += (_, _) => _views.Remove(item);
         _views[item] = view;

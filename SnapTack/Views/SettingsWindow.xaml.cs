@@ -1,8 +1,10 @@
 using System.Globalization;
+using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Microsoft.Win32;
 using SnapTack.Models;
 using SnapTack.Resources;
 
@@ -39,11 +41,17 @@ public partial class SettingsWindow : Window
         MaxTrashedScrapsLabel.Text = Strings.MaxTrashedScrapsLabelText;
         TrashRetentionLabel.Text = Strings.TrashRetentionLabelText;
         RestoreOnStartupCheck.Content = Strings.RestoreOnStartupText;
+        SaveFormatLabel.Text = Strings.SaveFormatLabelText;
+        JpegQualityLabel.Text = Strings.JpegQualityLabelText;
+        QuickSaveDirectoryLabel.Text = Strings.QuickSaveDirectoryLabelText;
+        BrowseQuickSaveButton.Content = Strings.BrowseButtonText;
+        CopyPathAfterSaveCheck.Content = Strings.CopyPathAfterSaveText;
         LanguageLabel.Text = Strings.LanguageLabelText;
         SaveButton.Content = Strings.SaveButtonText;
         CancelButton.Content = Strings.CancelButtonText;
 
         InitializeLanguageBox(current.Language);
+        InitializeSaveFormatBox(current.SaveFormat);
 
         _modifiers = current.HotkeyModifiers;
         _key = current.HotkeyKey;
@@ -58,6 +66,62 @@ public partial class SettingsWindow : Window
         MaxTrashedScrapsBox.Text = current.MaxTrashedScraps.ToString(CultureInfo.CurrentCulture);
         TrashRetentionBox.Text = current.TrashRetentionDays.ToString(CultureInfo.CurrentCulture);
         RestoreOnStartupCheck.IsChecked = current.RestoreScrapsOnStartup;
+
+        // 保存まわり (SPEC-v1.6 2.4)。空欄の保存先は「ピクチャ」を意味する
+        JpegQualityBox.Text = current.JpegQuality.ToString(CultureInfo.CurrentCulture);
+        QuickSaveDirectoryBox.Text = current.QuickSaveDirectory ?? "";
+        CopyPathAfterSaveCheck.IsChecked = current.CopyPathAfterSave;
+        UpdateJpegQualityEnabled();
+    }
+
+    /// <summary>保存形式のコンボボックスに選択肢を並べ、現在の設定を選択状態にする。</summary>
+    private void InitializeSaveFormatBox(SaveImageFormat current)
+    {
+        foreach (var format in ImageFormatInfo.All)
+        {
+            var item = new ComboBoxItem { Content = ImageFormatInfo.GetDisplayName(format), Tag = format };
+            SaveFormatBox.Items.Add(item);
+            if (format == current)
+            {
+                SaveFormatBox.SelectedItem = item;
+            }
+        }
+        // 設定ファイルが未知の値を持っていた場合に無選択のままにしない
+        SaveFormatBox.SelectedIndex = SaveFormatBox.SelectedIndex < 0 ? 0 : SaveFormatBox.SelectedIndex;
+    }
+
+    /// <summary>コンボボックスで選択中の保存形式を返す。</summary>
+    private SaveImageFormat SelectedSaveFormat =>
+        SaveFormatBox.SelectedItem is ComboBoxItem { Tag: SaveImageFormat format } ? format : SaveImageFormat.Png;
+
+    private void OnSaveFormatChanged(object sender, SelectionChangedEventArgs e) => UpdateJpegQualityEnabled();
+
+    /// <summary>品質欄は JPEG を選んでいる時だけ有効にする (他形式では効かないため)。</summary>
+    private void UpdateJpegQualityEnabled()
+    {
+        // XAML の初期化順で SelectionChanged が要素生成前に走り得るため null を許容する
+        if (JpegQualityBox is null || JpegQualityLabel is null)
+        {
+            return;
+        }
+        bool isJpeg = SelectedSaveFormat == SaveImageFormat.Jpeg;
+        JpegQualityBox.IsEnabled = isJpeg;
+        JpegQualityLabel.Opacity = isJpeg ? 1.0 : 0.5;
+    }
+
+    /// <summary>即保存の保存先をフォルダ選択ダイアログで選ぶ (SPEC-v1.6 2.4)。</summary>
+    private void OnBrowseQuickSaveClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFolderDialog
+        {
+            Title = Strings.QuickSaveFolderDialogTitle,
+            // 現在の入力値が有効なフォルダならそこから開く
+            InitialDirectory = Directory.Exists(QuickSaveDirectoryBox.Text) ? QuickSaveDirectoryBox.Text : "",
+        };
+        if (dialog.ShowDialog(this) == true)
+        {
+            QuickSaveDirectoryBox.Text = dialog.FolderName;
+        }
     }
 
     /// <summary>言語コンボボックスに選択肢を並べ、現在の設定を選択状態にする。</summary>
@@ -196,6 +260,14 @@ public partial class SettingsWindow : Window
         result.MaxTrashedScraps = Math.Max(0, ParseOrDefault(MaxTrashedScrapsBox.Text, _current.MaxTrashedScraps));
         result.TrashRetentionDays = Math.Max(0, ParseOrDefault(TrashRetentionBox.Text, _current.TrashRetentionDays));
         result.RestoreScrapsOnStartup = RestoreOnStartupCheck.IsChecked == true;
+
+        // 保存まわり (SPEC-v1.6 2.4)。品質は 1〜100 にクランプする
+        result.SaveFormat = SelectedSaveFormat;
+        result.JpegQuality = Math.Clamp(ParseOrDefault(JpegQualityBox.Text, _current.JpegQuality), 1, 100);
+        // 空欄は「ピクチャを使う」という意味なので null に正規化する
+        string quickSaveDirectory = QuickSaveDirectoryBox.Text.Trim();
+        result.QuickSaveDirectory = quickSaveDirectory.Length > 0 ? quickSaveDirectory : null;
+        result.CopyPathAfterSave = CopyPathAfterSaveCheck.IsChecked == true;
 
         Result = result;
         Close();

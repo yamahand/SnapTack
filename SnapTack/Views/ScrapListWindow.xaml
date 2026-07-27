@@ -5,7 +5,10 @@
         Width="640" Height="480"
         MinWidth="360" MinHeight="280"
         WindowStartupLocation="CenterScreen"
-        ShowInTaskbar="True">
+        ShowInTaskbar="True"
+        AllowDrop="True"
+        DragOver="OnListDragOver"
+        Drop="OnListDrop">
     <Window.Resources>
         <!-- グリッド: 96x96 サムネイルのカード。中央クロップは UniformToFill で行う -->
         <DataTemplate x:Key="GridItemTemplate">

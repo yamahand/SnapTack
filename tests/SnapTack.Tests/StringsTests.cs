@@ -117,17 +117,22 @@ public class StringsTests
         }
     }
 
-    [Fact]
-    public void PNG保存フィルタの書式が両言語で妥当()
+    [Theory]
+    [InlineData("SaveFilterPng")]
+    [InlineData("SaveFilterJpeg")]
+    [InlineData("SaveFilterBmp")]
+    public void 保存フィルタの書式が両言語で妥当(string key)
     {
-        // SaveFileDialog.Filter は "表示名|パターン" 形式。崩れるとダイアログが例外を投げる
+        // SaveFileDialog.Filter は "表示名|パターン" 形式。崩れるとダイアログが例外を投げる。
+        // v1.6 でパターンは {0} 埋め込みになったため、両側に {0} が残っていることを見る
         foreach (string culture in new[] { "en", "ja" })
         {
-            var filter = Manager.GetString("SaveFileFilter", new CultureInfo(culture));
+            var filter = Manager.GetString(key, new CultureInfo(culture));
             Assert.NotNull(filter);
             var parts = filter!.Split('|');
             Assert.Equal(2, parts.Length);
-            Assert.Equal("*.png", parts[1]);
+            Assert.Contains("{0}", parts[0]);
+            Assert.Equal("{0}", parts[1]);
         }
     }
 }
