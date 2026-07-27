@@ -6,8 +6,9 @@
 
 開発ドキュメントは `docs/` に集約している(ルートに置くのは README と本書のみ)。
 
-- 仕様: `docs/SPEC.md` (v1.0) + `docs/SPEC-v1.x.md` (v1.1〜v1.4) + `docs/SPEC-v1.5.md` (v1.5)
-- 実装順: `docs/MILESTONES.md` (M1〜M6) + `docs/MILESTONES-v1.x.md` (M7〜M12) + `docs/MILESTONES-v1.5.md` (M13〜)
+- 仕様: `docs/SPEC.md` (v1.0) + `docs/SPEC-v1.x.md` (v1.1〜v1.4) + `docs/SPEC-v1.5.md` (v1.5) + `docs/SPEC-v1.6.md` (v1.6)
+- 実装順: `docs/MILESTONES.md` (M1〜M6) + `docs/MILESTONES-v1.x.md` (M7〜M12) + `docs/MILESTONES-v1.5.md` (M13〜M17) + `docs/MILESTONES-v1.6.md` (M18〜M19 実装済み、M20〜 は **草案**)
+- 調査資料: `docs/SETUNA2-gap-analysis.md` (SETUNA2 との機能差分)
 - CI 方針: `docs/CI.md`
 
 ## 技術スタック(変更禁止)
@@ -42,6 +43,8 @@ tests/SnapTack.Tests/   xUnit
 > 旧設計では `ScrapWindow` を自己完結させ App 側で参照を持たなかった。スクラップリスト(一括操作)に中央管理が要るため M13 でこの制約を解除した。
 
 言語切替の即時反映は**今も表示中の付箋には及ぼさない**(付箋は生成時の言語で確定する)。中央管理に変わっても、この挙動は維持する。
+
+v1.6 でキャプチャ以外の作成経路(クリップボード貼り付け・D&D)が増えたが、**生成は必ず `ScrapManager` 経由**にする(`AddExternal`)。経路が増えても永続化・上限管理・二重表示防止が一箇所で効くようにするため。外部画像は元位置を持たないのでカーソル位置に配置する(`docs/SPEC-v1.6.md` 3.4)。
 
 ### キャプチャのフリーズ方式
 

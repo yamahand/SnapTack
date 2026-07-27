@@ -88,10 +88,24 @@
     <value>中クリック</value>
   </data>
   <data name="MenuSavePngText" xml:space="preserve">
-    <value>PNGで保存...</value>
+    <value>名前を付けて保存...</value>
+    <comment>v1.6 で形式が PNG 固定でなくなったため文言を変更。キー名は互換のため据え置き</comment>
   </data>
   <data name="MenuSavePngGestureText" xml:space="preserve">
     <value>Ctrl+S</value>
+  </data>
+  <data name="MenuQuickSaveText" xml:space="preserve">
+    <value>すぐ保存</value>
+  </data>
+  <data name="MenuQuickSaveGestureText" xml:space="preserve">
+    <value>Ctrl+Shift+S</value>
+  </data>
+  <data name="MenuPasteScrapText" xml:space="preserve">
+    <value>貼り付けて新しい付箋にする</value>
+    <comment>付箋のコンテキストメニュー。トレイの MenuPasteText とはアクセスキーの有無が異なる</comment>
+  </data>
+  <data name="MenuPasteScrapGestureText" xml:space="preserve">
+    <value>Ctrl+V</value>
   </data>
   <data name="MenuOpacityText" xml:space="preserve">
     <value>不透明度</value>
@@ -105,15 +119,24 @@
   <data name="MenuDiceGestureText" xml:space="preserve">
     <value>ダブルクリック</value>
   </data>
-  <data name="SaveFileFilter" xml:space="preserve">
-    <value>PNG 画像 (*.png)|*.png</value>
+  <data name="SaveFilterPng" xml:space="preserve">
+    <value>PNG 画像 ({0})|{0}</value>
+    <comment>{0} = ワイルドカードのパターン (例: *.png)</comment>
+  </data>
+  <data name="SaveFilterJpeg" xml:space="preserve">
+    <value>JPEG 画像 ({0})|{0}</value>
+    <comment>{0} = ワイルドカードのパターン (例: *.jpg;*.jpeg)</comment>
+  </data>
+  <data name="SaveFilterBmp" xml:space="preserve">
+    <value>BMP 画像 ({0})|{0}</value>
+    <comment>{0} = ワイルドカードのパターン (例: *.bmp)</comment>
   </data>
   <data name="ClipboardCopyFailedMessage" xml:space="preserve">
     <value>クリップボードへのコピーに失敗しました。
 他のアプリがクリップボードを使用中の可能性があります。</value>
   </data>
-  <data name="SavePngFailedMessage" xml:space="preserve">
-    <value>PNG の保存に失敗しました。
+  <data name="SaveImageFailedMessage" xml:space="preserve">
+    <value>画像の保存に失敗しました。
 保存先のアクセス権や空き容量を確認してください。</value>
   </data>
 
@@ -165,6 +188,24 @@
   </data>
   <data name="RestoreOnStartupText" xml:space="preserve">
     <value>起動時に貼り付け済みのスクラップを復元する</value>
+  </data>
+  <data name="SaveFormatLabelText" xml:space="preserve">
+    <value>保存形式</value>
+  </data>
+  <data name="JpegQualityLabelText" xml:space="preserve">
+    <value>JPEG 品質 (1〜100)</value>
+  </data>
+  <data name="QuickSaveDirectoryLabelText" xml:space="preserve">
+    <value>すぐ保存の保存先 (空欄でピクチャ)</value>
+  </data>
+  <data name="BrowseButtonText" xml:space="preserve">
+    <value>参照...</value>
+  </data>
+  <data name="QuickSaveFolderDialogTitle" xml:space="preserve">
+    <value>すぐ保存の保存先フォルダを選択</value>
+  </data>
+  <data name="CopyPathAfterSaveText" xml:space="preserve">
+    <value>保存後にファイルパスをクリップボードへコピーする</value>
   </data>
 
   <!-- ===== アプリ全体のエラー (App.xaml.cs) ===== -->
@@ -234,5 +275,15 @@
   </data>
   <data name="LayoutListText" xml:space="preserve">
     <value>リスト</value>
+  </data>
+
+  <!-- ===== スクラップの作成方法の追加 (v1.6 / M19) ===== -->
+  <data name="MenuPasteText" xml:space="preserve">
+    <value>クリップボードから貼り付け(&amp;P)</value>
+    <comment>トレイメニュー。&amp; はアクセスキー</comment>
+  </data>
+  <data name="PasteFailedMessage" xml:space="preserve">
+    <value>画像ファイルからスクラップを作成できませんでした。
+ファイルが壊れているか、対応していない形式の可能性があります。</value>
   </data>
 </root>

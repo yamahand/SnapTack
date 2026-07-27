@@ -56,6 +56,18 @@ public class AppSettings
     /// <summary>スクラップリストの一覧レイアウト。既定はサムネイルのグリッド。</summary>
     public ScrapListLayout ScrapListLayout { get; set; } = ScrapListLayout.Grid;
 
+    /// <summary>保存形式。既定は Png (v1.5 までの挙動を維持。SPEC-v1.6 2.1)。</summary>
+    public SaveImageFormat SaveFormat { get; set; } = SaveImageFormat.Png;
+
+    /// <summary>JPEG 保存の品質 (1〜100)。既定 90 (SPEC-v1.6 2.1)。</summary>
+    public int JpegQuality { get; set; } = 90;
+
+    /// <summary>即保存の保存先。未設定 (null) なら「ピクチャ」を使う (SPEC-v1.6 2.2)。</summary>
+    public string? QuickSaveDirectory { get; set; }
+
+    /// <summary>保存後にファイルパスをクリップボードへコピーするか (SPEC-v1.6 2.3)。</summary>
+    public bool CopyPathAfterSave { get; set; }
+
     /// <summary>浅いコピーを返す。設定画面が一部項目だけ書き換える際に使う。</summary>
     public AppSettings Clone() => (AppSettings)MemberwiseClone();
 

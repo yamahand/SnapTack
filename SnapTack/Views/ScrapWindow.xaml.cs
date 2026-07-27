@@ -1,4 +1,3 @@
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -6,7 +5,6 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Microsoft.Win32;
 using SnapTack.Interop;
 using SnapTack.Models;
 using SnapTack.Resources;
@@ -25,13 +23,22 @@ public partial class ScrapWindow : Window, IScrapView
     /// <summary>ユーザーが「リストに隠す」を要求した。Stashed へ移す意図 (SPEC-v1.5 2.3)。</summary>
     public event EventHandler? StashRequested;
 
+    /// <summary>
+    /// ユーザーが付箋上で Ctrl+V を押した (SPEC-v1.6 3.5)。引数は新しい付箋を出す
+    /// 左上位置 (物理px)。実際の生成は <see cref="Models.ScrapManager"/> が行う。
+    /// </summary>
+    public event EventHandler<Point>? PasteRequested;
+
     // 言語非依存の文字列。翻訳対象は Resources/Strings.resx を参照
     private const string AppName = "SnapTack";
-    private const string SaveFileNameFormat = "SnapTack_{0:yyyyMMdd_HHmmss}.png";
     private const string OpacityPresetFormat = "{0}%";
 
     // サイコロ (最小化タイル) のサイズ (SPEC-v1.x 2.3)
     private const double DiceSizeDip = 48.0;
+
+    // Ctrl+V で作る付箋を元の付箋からずらす量 (物理px)。重ねると置き換えたように
+    // 見えるため、少しずらして「隣に増えた」と分かるようにする (SPEC-v1.6 3.5)
+    private const int PasteOffsetPx = 24;
 
     // 不透明度の範囲・ステップ (SPEC-v1.x 2.2) は OpacityLevel が持つ
     private const int OpacityMaxPercent = OpacityLevel.MaxPercent;
@@ -39,7 +46,7 @@ public partial class ScrapWindow : Window, IScrapView
 
     private readonly BitmapSource _image;      // 物理ピクセル (Freeze 済み)
     private readonly Int32Rect _physicalRect;  // キャプチャ元の位置・サイズ (物理px、仮想スクリーン座標)
-    private readonly SettingsService _settings;
+    private readonly ImageSaver _saver;        // 保存処理 (形式選択・即保存。SPEC-v1.6 2)
     private readonly List<MenuItem> _opacityPresetItems = [];
 
     /// <summary>このウィンドウが表示しているスクラップ。<see cref="Models.ScrapManager"/> が識別に使う。</summary>
@@ -63,7 +70,7 @@ public partial class ScrapWindow : Window, IScrapView
         Item = item;
         _image = item.Image;
         _physicalRect = item.PhysicalRect;
-        _settings = settings;
+        _saver = new ImageSaver(settings);
         ScrapImage.Source = _image;
         DiceBrush.ImageSource = _image;
         ContextMenu = BuildContextMenu();
@@ -174,14 +181,26 @@ public partial class ScrapWindow : Window, IScrapView
         }
     }
 
-    /// <summary>コンテキストメニュー: コピー / PNG保存 / 隠す / 閉じる (SPEC 4.4 + SPEC-v1.5 2.3)。</summary>
+    /// <summary>
+    /// コンテキストメニュー: コピー / 保存 / すぐ保存 / 隠す / 閉じる
+    /// (SPEC 4.4 + SPEC-v1.5 2.3 + SPEC-v1.6 2.2)。
+    /// </summary>
     private ContextMenu BuildContextMenu()
     {
         var copyItem = new MenuItem { Header = Strings.MenuCopyText, InputGestureText = Strings.MenuCopyGestureText };
         copyItem.Click += (_, _) => CopyToClipboard();
 
         var savePngItem = new MenuItem { Header = Strings.MenuSavePngText, InputGestureText = Strings.MenuSavePngGestureText };
-        savePngItem.Click += (_, _) => SaveAsPng();
+        savePngItem.Click += (_, _) => SaveWithDialog();
+
+        // ダイアログ無しで設定フォルダへ日時名保存する (SPEC-v1.6 2.2)
+        var quickSaveItem = new MenuItem { Header = Strings.MenuQuickSaveText, InputGestureText = Strings.MenuQuickSaveGestureText };
+        quickSaveItem.Click += (_, _) => QuickSave();
+
+        // クリップボードの画像を新しい付箋にする (SPEC-v1.6 3.5)。
+        // キーだけだと気付かれにくいのでメニューにも出す
+        var pasteItem = new MenuItem { Header = Strings.MenuPasteScrapText, InputGestureText = Strings.MenuPasteScrapGestureText };
+        pasteItem.Click += (_, _) => RequestPaste();
 
         // 不透明度プリセット。現在値の項目にチェックを付ける (SPEC-v1.x 2.2)
         var opacityItem = new MenuItem { Header = Strings.MenuOpacityText };
@@ -208,7 +227,9 @@ public partial class ScrapWindow : Window, IScrapView
 
         var menu = new ContextMenu();
         menu.Items.Add(copyItem);
+        menu.Items.Add(pasteItem);
         menu.Items.Add(savePngItem);
+        menu.Items.Add(quickSaveItem);
         menu.Items.Add(opacityItem);
         menu.Items.Add(_diceMenuItem);
         menu.Items.Add(new Separator());
@@ -345,61 +366,44 @@ public partial class ScrapWindow : Window, IScrapView
         }
         else if (e.Key == Key.S && Keyboard.Modifiers == ModifierKeys.Control)
         {
-            SaveAsPng();
+            SaveWithDialog();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.S && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+        {
+            // 即保存は付箋ローカルのキーに割り当てる。グローバル登録を増やさず、
+            // かつ「どの付箋を保存するか」が一意に決まる (SPEC-v1.6 2.2)
+            QuickSave();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            RequestPaste();
             e.Handled = true;
         }
     }
 
-    /// <summary>キャプチャ画像を物理ピクセル等倍の PNG として保存する (SPEC-v1.x 2.1)。</summary>
-    private void SaveAsPng()
+    /// <summary>
+    /// クリップボードの画像を新しい付箋にするよう要求する (SPEC-v1.6 3.5)。
+    /// この付箋から少しずらした位置に出すことで「隣に増えた」と分かるようにする。
+    /// </summary>
+    private void RequestPaste()
     {
-        var dialog = new SaveFileDialog
-        {
-            FileName = string.Format(SaveFileNameFormat, DateTime.Now),
-            DefaultExt = ".png",
-            Filter = Strings.SaveFileFilter,
-            InitialDirectory = GetInitialSaveDirectory(),
-        };
-        if (dialog.ShowDialog(this) != true)
-        {
-            return;
-        }
-
-        string? savedDirectory;
-        try
-        {
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(_image));
-            using (var stream = File.Create(dialog.FileName))
-            {
-                encoder.Save(stream);
-            }
-            savedDirectory = Path.GetDirectoryName(dialog.FileName);
-        }
-        catch (Exception ex) when (
-            ex is IOException or UnauthorizedAccessException or ExternalException
-                or ArgumentException or NotSupportedException or System.Security.SecurityException)
-        {
-            // 不正なパスの手入力・権限不足・書き込み失敗など。付箋は維持する (SPEC-v1.x 2.1)
-            MessageBox.Show(Strings.SavePngFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        // 次回のデフォルト保存先として記憶する。永続化失敗は保存自体には影響しないため通知しない
-        _settings.Current.LastSaveDirectory = savedDirectory;
-        _settings.Save();
+        // 現在位置が取れなければキャプチャ元の位置を基準にする (復元直後など)
+        var origin = TryGetPhysicalPosition(out var position)
+            ? position
+            : new Point(_physicalRect.X, _physicalRect.Y);
+        PasteRequested?.Invoke(this,
+            new Point(origin.X + PasteOffsetPx, origin.Y + PasteOffsetPx));
     }
 
-    /// <summary>前回保存フォルダが有効ならそれを、なければ「ピクチャ」を返す。</summary>
-    private string GetInitialSaveDirectory()
-    {
-        string? last = _settings.Current.LastSaveDirectory;
-        if (!string.IsNullOrEmpty(last) && Directory.Exists(last))
-        {
-            return last;
-        }
-        return Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
-    }
+    /// <summary>
+    /// キャプチャ画像を物理ピクセル等倍で保存する。形式はダイアログで選べる (SPEC-v1.6 2.1)。
+    /// </summary>
+    private void SaveWithDialog() => _saver.SaveWithDialog(this, _image, DateTime.Now);
+
+    /// <summary>ダイアログを出さず、設定フォルダへ日時名で保存する (SPEC-v1.6 2.2)。</summary>
+    private void QuickSave() => _saver.QuickSave([(_image, DateTime.Now)]);
 
     private void CopyToClipboard()
     {

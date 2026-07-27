@@ -22,6 +22,9 @@ public sealed class TrayIcon : IDisposable
     /// <summary>メニューの「スクラップリスト」で発火する。</summary>
     public event EventHandler? ScrapListRequested;
 
+    /// <summary>メニューの「クリップボードから貼り付け」で発火する (SPEC-v1.6 3.2)。</summary>
+    public event EventHandler? PasteRequested;
+
     /// <summary>メニューの「設定」で発火する。</summary>
     public event EventHandler? SettingsRequested;
 
@@ -49,6 +52,12 @@ public sealed class TrayIcon : IDisposable
         var captureItem = new ToolStripMenuItem(string.Format(Strings.MenuCaptureTextFormat, hotkeyDisplayText));
         captureItem.Click += (_, _) => CaptureRequested?.Invoke(this, EventArgs.Empty);
         menu.Items.Add(captureItem);
+
+        // クリップボードの画像 / 画像ファイルパスからスクラップを作る (SPEC-v1.6 3.2)。
+        // キャプチャの直後に置き、「スクラップを作る」操作としてまとめる
+        var pasteItem = new ToolStripMenuItem(Strings.MenuPasteText);
+        pasteItem.Click += (_, _) => PasteRequested?.Invoke(this, EventArgs.Empty);
+        menu.Items.Add(pasteItem);
 
         var scrapListItem = new ToolStripMenuItem(Strings.MenuScrapListText);
         scrapListItem.Click += (_, _) => ScrapListRequested?.Invoke(this, EventArgs.Empty);

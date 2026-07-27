@@ -92,10 +92,24 @@
     <value>Middle click</value>
   </data>
   <data name="MenuSavePngText" xml:space="preserve">
-    <value>Save as PNG...</value>
+    <value>Save as...</value>
+    <comment>v1.6 で形式が PNG 固定でなくなったため文言を変更。キー名は互換のため据え置き</comment>
   </data>
   <data name="MenuSavePngGestureText" xml:space="preserve">
     <value>Ctrl+S</value>
+  </data>
+  <data name="MenuQuickSaveText" xml:space="preserve">
+    <value>Quick save</value>
+  </data>
+  <data name="MenuQuickSaveGestureText" xml:space="preserve">
+    <value>Ctrl+Shift+S</value>
+  </data>
+  <data name="MenuPasteScrapText" xml:space="preserve">
+    <value>Paste as new scrap</value>
+    <comment>付箋のコンテキストメニュー。トレイの MenuPasteText とはアクセスキーの有無が異なる</comment>
+  </data>
+  <data name="MenuPasteScrapGestureText" xml:space="preserve">
+    <value>Ctrl+V</value>
   </data>
   <data name="MenuOpacityText" xml:space="preserve">
     <value>Opacity</value>
@@ -109,15 +123,24 @@
   <data name="MenuDiceGestureText" xml:space="preserve">
     <value>Double-click</value>
   </data>
-  <data name="SaveFileFilter" xml:space="preserve">
-    <value>PNG image (*.png)|*.png</value>
+  <data name="SaveFilterPng" xml:space="preserve">
+    <value>PNG image ({0})|{0}</value>
+    <comment>{0} = ワイルドカードのパターン (例: *.png)</comment>
+  </data>
+  <data name="SaveFilterJpeg" xml:space="preserve">
+    <value>JPEG image ({0})|{0}</value>
+    <comment>{0} = ワイルドカードのパターン (例: *.jpg;*.jpeg)</comment>
+  </data>
+  <data name="SaveFilterBmp" xml:space="preserve">
+    <value>BMP image ({0})|{0}</value>
+    <comment>{0} = ワイルドカードのパターン (例: *.bmp)</comment>
   </data>
   <data name="ClipboardCopyFailedMessage" xml:space="preserve">
     <value>Failed to copy to the clipboard.
 Another app may currently be using the clipboard.</value>
   </data>
-  <data name="SavePngFailedMessage" xml:space="preserve">
-    <value>Failed to save the PNG file.
+  <data name="SaveImageFailedMessage" xml:space="preserve">
+    <value>Failed to save the image file.
 Check the permissions and free space of the destination.</value>
   </data>
 
@@ -171,6 +194,24 @@ Check the permissions and free space of the destination.</value>
   </data>
   <data name="RestoreOnStartupText" xml:space="preserve">
     <value>Restore pinned scraps on startup</value>
+  </data>
+  <data name="SaveFormatLabelText" xml:space="preserve">
+    <value>Save format</value>
+  </data>
+  <data name="JpegQualityLabelText" xml:space="preserve">
+    <value>JPEG quality (1-100)</value>
+  </data>
+  <data name="QuickSaveDirectoryLabelText" xml:space="preserve">
+    <value>Quick save folder (empty = Pictures)</value>
+  </data>
+  <data name="BrowseButtonText" xml:space="preserve">
+    <value>Browse...</value>
+  </data>
+  <data name="QuickSaveFolderDialogTitle" xml:space="preserve">
+    <value>Select the quick save folder</value>
+  </data>
+  <data name="CopyPathAfterSaveText" xml:space="preserve">
+    <value>Copy the file path to the clipboard after saving</value>
   </data>
 
   <!-- ===== アプリ全体のエラー (App.xaml.cs) ===== -->
@@ -243,5 +284,15 @@ It may conflict with another app.
   </data>
   <data name="LayoutListText" xml:space="preserve">
     <value>List</value>
+  </data>
+
+  <!-- ===== スクラップの作成方法の追加 (v1.6 / M19) ===== -->
+  <data name="MenuPasteText" xml:space="preserve">
+    <value>&amp;Paste from clipboard</value>
+    <comment>トレイメニュー。&amp; はアクセスキー</comment>
+  </data>
+  <data name="PasteFailedMessage" xml:space="preserve">
+    <value>Could not create a scrap from the image file.
+The file may be corrupted or in an unsupported format.</value>
   </data>
 </root>

@@ -19,6 +19,7 @@ SnapTack の開発向け資料。利用者向けの説明はリポジトリ直�
 | [MILESTONES.md](MILESTONES.md) | M1〜M6 (v1.0 まで) |
 | [MILESTONES-v1.x.md](MILESTONES-v1.x.md) | M7〜M12 (v1.1〜v1.4) |
 | [MILESTONES-v1.5.md](MILESTONES-v1.5.md) | M13〜M17 (v1.5) |
+| [MILESTONES-v1.6.md](MILESTONES-v1.6.md) | M18〜M21 (v1.6〜) の草案。SETUNA2 ギャップ埋め |
 | [MILESTONE-M11.md](MILESTONE-M11.md) | M11 (CI 整備) の詳細チェックリスト |
 
 ## 開発基盤
@@ -26,6 +27,12 @@ SnapTack の開発向け資料。利用者向けの説明はリポジトリ直�
 | ファイル | 内容 |
 |---|---|
 | [CI.md](CI.md) | CI / リリース自動化の方針 |
+
+## 調査資料
+
+| ファイル | 内容 |
+|---|---|
+| [SETUNA2-gap-analysis.md](SETUNA2-gap-analysis.md) | SETUNA2 との機能差分。v1.6 以降の実装候補の棚卸し |
 
 ## 関連
 

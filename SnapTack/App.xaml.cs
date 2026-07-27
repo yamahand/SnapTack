@@ -64,6 +64,7 @@ public partial class App : Application
 
         _trayIcon = new TrayIcon(_settings.Current.GetHotkeyDisplayText());
         _trayIcon.CaptureRequested += OnCaptureRequested;
+        _trayIcon.PasteRequested += OnPasteRequested;
         _trayIcon.ScrapListRequested += OnScrapListRequested;
         _trayIcon.SettingsRequested += OnSettingsRequested;
         _trayIcon.ExitRequested += (_, _) => ShutdownApp();
@@ -149,6 +150,24 @@ public partial class App : Application
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or ExternalException)
         {
             MessageBox.Show(Strings.CaptureFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    /// <summary>
+    /// クリップボードの内容からスクラップを作る (SPEC-v1.6 3.2)。
+    /// 画像・ファイルドロップ・パス文字列の順に判定するのは <see cref="ImageFileLoader"/> 側。
+    /// </summary>
+    private void OnPasteRequested(object? sender, EventArgs e)
+    {
+        if (_scraps is null)
+        {
+            return;
+        }
+        var images = ImageFileLoader.LoadFromClipboard();
+        // 貼るものが無かっただけならエラーを出さない (煩わしいため。SPEC-v1.6 3.2)
+        foreach (var image in images)
+        {
+            _scraps.AddExternal(image);
         }
     }
 

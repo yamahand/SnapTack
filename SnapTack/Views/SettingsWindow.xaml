@@ -32,6 +32,22 @@
         <TextBox x:Name="TrashRetentionBox"
                  PreviewTextInput="OnNumberBoxPreviewTextInput" />
         <CheckBox x:Name="RestoreOnStartupCheck" Margin="0,20,0,0" />
+        <TextBlock x:Name="SaveFormatLabel" Margin="0,20,0,8" />
+        <ComboBox x:Name="SaveFormatBox" SelectionChanged="OnSaveFormatChanged" />
+        <TextBlock x:Name="JpegQualityLabel" Margin="0,16,0,8" />
+        <TextBox x:Name="JpegQualityBox"
+                 PreviewTextInput="OnNumberBoxPreviewTextInput" />
+        <TextBlock x:Name="QuickSaveDirectoryLabel" Margin="0,16,0,8" />
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="QuickSaveDirectoryBox" Grid.Column="0" />
+            <Button x:Name="BrowseQuickSaveButton" Grid.Column="1" Margin="8,0,0,0"
+                    MinWidth="80" Click="OnBrowseQuickSaveClick" />
+        </Grid>
+        <CheckBox x:Name="CopyPathAfterSaveCheck" Margin="0,16,0,0" />
         <TextBlock x:Name="LanguageLabel" Margin="0,20,0,8" />
         <ComboBox x:Name="LanguageBox" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
