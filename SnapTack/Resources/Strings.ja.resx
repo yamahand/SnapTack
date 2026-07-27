@@ -100,6 +100,13 @@
   <data name="MenuQuickSaveGestureText" xml:space="preserve">
     <value>Ctrl+Shift+S</value>
   </data>
+  <data name="MenuPasteScrapText" xml:space="preserve">
+    <value>貼り付けて新しい付箋にする</value>
+    <comment>付箋のコンテキストメニュー。トレイの MenuPasteText とはアクセスキーの有無が異なる</comment>
+  </data>
+  <data name="MenuPasteScrapGestureText" xml:space="preserve">
+    <value>Ctrl+V</value>
+  </data>
   <data name="MenuOpacityText" xml:space="preserve">
     <value>不透明度</value>
   </data>

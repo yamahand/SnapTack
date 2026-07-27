@@ -18,6 +18,12 @@ public interface IScrapView
     /// <summary>ユーザーが「リストに隠す」を要求した。Stashed へ移す意図。</summary>
     event EventHandler? StashRequested;
 
+    /// <summary>
+    /// ユーザーが付箋上で Ctrl+V を押した (SPEC-v1.6 3.6)。
+    /// 引数は新しい付箋を出す左上位置 (物理px、仮想スクリーン座標)。
+    /// </summary>
+    event EventHandler<System.Windows.Point>? PasteRequested;
+
     /// <summary>ウィンドウが閉じられた(プログラム由来を含む全ての閉じ)。</summary>
     event EventHandler? Closed;
 

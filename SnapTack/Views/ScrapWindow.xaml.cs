@@ -23,12 +23,22 @@ public partial class ScrapWindow : Window, IScrapView
     /// <summary>ユーザーが「リストに隠す」を要求した。Stashed へ移す意図 (SPEC-v1.5 2.3)。</summary>
     public event EventHandler? StashRequested;
 
+    /// <summary>
+    /// ユーザーが付箋上で Ctrl+V を押した (SPEC-v1.6 3.6)。引数は新しい付箋を出す
+    /// 左上位置 (物理px)。実際の生成は <see cref="Models.ScrapManager"/> が行う。
+    /// </summary>
+    public event EventHandler<Point>? PasteRequested;
+
     // 言語非依存の文字列。翻訳対象は Resources/Strings.resx を参照
     private const string AppName = "SnapTack";
     private const string OpacityPresetFormat = "{0}%";
 
     // サイコロ (最小化タイル) のサイズ (SPEC-v1.x 2.3)
     private const double DiceSizeDip = 48.0;
+
+    // Ctrl+V で作る付箋を元の付箋からずらす量 (物理px)。重ねると置き換えたように
+    // 見えるため、少しずらして「隣に増えた」と分かるようにする (SPEC-v1.6 3.6)
+    private const int PasteOffsetPx = 24;
 
     // 不透明度の範囲・ステップ (SPEC-v1.x 2.2) は OpacityLevel が持つ
     private const int OpacityMaxPercent = OpacityLevel.MaxPercent;
@@ -187,6 +197,11 @@ public partial class ScrapWindow : Window, IScrapView
         var quickSaveItem = new MenuItem { Header = Strings.MenuQuickSaveText, InputGestureText = Strings.MenuQuickSaveGestureText };
         quickSaveItem.Click += (_, _) => QuickSave();
 
+        // クリップボードの画像を新しい付箋にする (SPEC-v1.6 3.6)。
+        // キーだけだと気付かれにくいのでメニューにも出す
+        var pasteItem = new MenuItem { Header = Strings.MenuPasteScrapText, InputGestureText = Strings.MenuPasteScrapGestureText };
+        pasteItem.Click += (_, _) => RequestPaste();
+
         // 不透明度プリセット。現在値の項目にチェックを付ける (SPEC-v1.x 2.2)
         var opacityItem = new MenuItem { Header = Strings.MenuOpacityText };
         foreach (int percent in OpacityPresets)
@@ -212,6 +227,7 @@ public partial class ScrapWindow : Window, IScrapView
 
         var menu = new ContextMenu();
         menu.Items.Add(copyItem);
+        menu.Items.Add(pasteItem);
         menu.Items.Add(savePngItem);
         menu.Items.Add(quickSaveItem);
         menu.Items.Add(opacityItem);
@@ -360,6 +376,25 @@ public partial class ScrapWindow : Window, IScrapView
             QuickSave();
             e.Handled = true;
         }
+        else if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            RequestPaste();
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>
+    /// クリップボードの画像を新しい付箋にするよう要求する (SPEC-v1.6 3.6)。
+    /// この付箋から少しずらした位置に出すことで「隣に増えた」と分かるようにする。
+    /// </summary>
+    private void RequestPaste()
+    {
+        // 現在位置が取れなければキャプチャ元の位置を基準にする (復元直後など)
+        var origin = TryGetPhysicalPosition(out var position)
+            ? position
+            : new Point(_physicalRect.X, _physicalRect.Y);
+        PasteRequested?.Invoke(this,
+            new Point(origin.X + PasteOffsetPx, origin.Y + PasteOffsetPx));
     }
 
     /// <summary>

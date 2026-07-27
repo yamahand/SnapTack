@@ -39,6 +39,8 @@ internal static class Strings
     public static string MenuSavePngGestureText => Get(nameof(MenuSavePngGestureText));
     public static string MenuQuickSaveText => Get(nameof(MenuQuickSaveText));
     public static string MenuQuickSaveGestureText => Get(nameof(MenuQuickSaveGestureText));
+    public static string MenuPasteScrapText => Get(nameof(MenuPasteScrapText));
+    public static string MenuPasteScrapGestureText => Get(nameof(MenuPasteScrapGestureText));
     public static string MenuOpacityText => Get(nameof(MenuOpacityText));
     public static string MenuDiceText => Get(nameof(MenuDiceText));
     public static string MenuRestoreText => Get(nameof(MenuRestoreText));

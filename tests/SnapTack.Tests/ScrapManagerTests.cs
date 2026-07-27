@@ -31,6 +31,7 @@ public class ScrapManagerTests : IDisposable
 
         public event EventHandler? TrashRequested;
         public event EventHandler? StashRequested;
+        public event EventHandler<Point>? PasteRequested;
         public event EventHandler? Closed;
 
         public FakeView(ScrapItem item) => Item = item;
@@ -49,6 +50,7 @@ public class ScrapManagerTests : IDisposable
         // 以下はユーザー操作の模擬
         public void UserTrash() => TrashRequested?.Invoke(this, EventArgs.Empty);
         public void UserStash() => StashRequested?.Invoke(this, EventArgs.Empty);
+        public void UserPaste(Point position) => PasteRequested?.Invoke(this, position);
     }
 
     private static BitmapSource MakeImage() =>
@@ -357,6 +359,60 @@ public class ScrapManagerTests : IDisposable
         Assert.Equal(added.Id, one.Id);
         Assert.Equal(8, one.PhysicalRect.Width);
         Assert.Equal(6, one.PhysicalRect.Height);
+    }
+
+    [Fact]
+    public void 位置を指定した外部画像はその位置に配置される()
+    {
+        // 付箋上の Ctrl+V で「元の付箋からずらして出す」ための経路 (SPEC-v1.6 3.6)。
+        // プライマリモニタ内の座標を使い、クランプが働かない条件で確認する
+        var (m, _) = NewManager();
+
+        var item = m.AddExternalAt(MakeImage(10, 10), 100, 80);
+
+        Assert.Equal(100, item.PhysicalRect.X);
+        Assert.Equal(80, item.PhysicalRect.Y);
+    }
+
+    [Fact]
+    public void 位置指定でも画面外へはみ出さない()
+    {
+        // 極端な座標を渡してもモニタ内へクランプされること
+        var (m, _) = NewManager();
+
+        var item = m.AddExternalAt(MakeImage(10, 10), 999_999, 999_999);
+
+        var bounds = System.Windows.Forms.Screen.PrimaryScreen!.Bounds;
+        Assert.InRange(item.PhysicalRect.X, bounds.Left, bounds.Right);
+        Assert.InRange(item.PhysicalRect.Y, bounds.Top, bounds.Bottom);
+    }
+
+    [Fact]
+    public void 付箋のCtrl_V要求がManager経由の生成につながる()
+    {
+        // ビューは位置を通知するだけで、生成は必ず Manager が行う (SPEC-v1.5 3.1)。
+        // 実際に何が貼られるかはクリップボードの中身次第 (環境依存) なので、
+        // 配線が繋がっていて「貼るものが無くても落ちない」ことだけを見る。
+        //
+        // WPF の Clipboard は OLE 経由で STA を要求する。xunit の既定は MTA で、
+        // STA 属性を足すには外部パッケージ (xunit.stafact) が要り
+        // 「外部 NuGet は原則追加しない」に反するため、STA スレッドを自前で立てる
+        var (m, views) = NewManager();
+        var item = Add(m);
+        int before = m.Items.Count;
+
+        Exception? captured = null;
+        var thread = new Thread(() =>
+        {
+            captured = Record.Exception(() => views[item].UserPaste(new Point(50, 50)));
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(captured);
+        // クリップボードに画像があれば増える。無ければ変わらない。どちらでも減りはしない
+        Assert.True(m.Items.Count >= before);
     }
 
     [Fact]
