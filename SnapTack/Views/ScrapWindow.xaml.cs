@@ -29,6 +29,11 @@ public partial class ScrapWindow : Window, IScrapView
     /// </summary>
     public event EventHandler<Point>? PasteRequested;
 
+    /// <summary>
+    /// ユーザーが編集を適用した (SPEC-v1.7 5)。永続化は <see cref="Models.ScrapManager"/> が行う。
+    /// </summary>
+    public event EventHandler? EditApplied;
+
     // 言語非依存の文字列。翻訳対象は Resources/Strings.resx を参照
     private const string AppName = "SnapTack";
     private const string OpacityPresetFormat = "{0}%";
@@ -44,10 +49,27 @@ public partial class ScrapWindow : Window, IScrapView
     private const int OpacityMaxPercent = OpacityLevel.MaxPercent;
     private static readonly int[] OpacityPresets = [100, 75, 50, 25];
 
-    private readonly BitmapSource _image;      // 物理ピクセル (Freeze 済み)
+    // 拡大縮小プリセット (SPEC-v1.7 2.2)。不透明度と同じくチェック表示で現在値を示す
+    private static readonly int[] ScalePresets = [400, 200, 100, 75, 50, 25];
+
+    // キー移動の刻み (物理px、SPEC-v1.7 2.5)。設定化はせず定数で始める (SPEC-v1.7 3)
+    private const int MoveStepPx = 1;
+    private const int MoveStepLargePx = 50;
+
+    // 移動値表示を消すまでの時間。常時表示すると画像を隠すため (SPEC-v1.7 2.5)
+    private static readonly TimeSpan PositionReadoutDuration = TimeSpan.FromSeconds(1);
+
+    // 移動値の表示形式。言語非依存なので const のままでよい (CLAUDE.md の i18n 方針)
+    private const string PositionFormat = "{0}, {1}";
+
+    // トリムの極小選択をキャンセル扱いにするしきい値 (DIP)。誤クリック対策 (SPEC-v1.7 2.4)
+    private const double MinTrimSizeDip = 4.0;
+
+    private readonly BitmapSource _image;      // 物理ピクセル (Freeze 済み)。編集前の元画像
     private readonly Int32Rect _physicalRect;  // キャプチャ元の位置・サイズ (物理px、仮想スクリーン座標)
     private readonly ImageSaver _saver;        // 保存処理 (形式選択・即保存。SPEC-v1.6 2)
     private readonly List<MenuItem> _opacityPresetItems = [];
+    private readonly List<MenuItem> _scalePresetItems = [];
 
     /// <summary>このウィンドウが表示しているスクラップ。<see cref="Models.ScrapManager"/> が識別に使う。</summary>
     public ScrapItem Item { get; }
@@ -60,6 +82,22 @@ public partial class ScrapWindow : Window, IScrapView
     private MenuItem? _diceMenuItem;
     private Size _dipSizeBeforeDice; // サイコロ化直前の DIP サイズ (復元用)
 
+    // 編集関連 (SPEC-v1.7)。編集メニューはサイコロ中に無効化するため参照を持つ
+    private MenuItem? _scaleMenuItem;
+    private MenuItem? _rotateFlipMenuItem;
+    private MenuItem? _trimMenuItem;
+    private MenuItem? _resetEditMenuItem;
+    private MenuItem? _flipHorizontalItem;
+    private MenuItem? _flipVerticalItem;
+
+    // トリムモード (SPEC-v1.7 2.4)。true の間は移動・サイコロ化・不透明度変更を受け付けない
+    private bool _isTrimming;
+    private Point? _trimStartDip;
+    private Rect _trimSelectionDip;
+
+    // 移動値表示を消すタイマー (SPEC-v1.7 2.5)
+    private System.Windows.Threading.DispatcherTimer? _positionReadoutTimer;
+
     // 左ボタン押下位置 (DIP)。しきい値を超えて動いたら初めて DragMove を開始する。
     // これにより「移動を伴わないクリック」のみがダブルクリック判定に残る (SPEC-v1.x 4)
     private Point? _leftButtonDownDip;
@@ -71,12 +109,24 @@ public partial class ScrapWindow : Window, IScrapView
         _image = item.Image;
         _physicalRect = item.PhysicalRect;
         _saver = new ImageSaver(settings);
-        ScrapImage.Source = _image;
-        DiceBrush.ImageSource = _image;
         ContextMenu = BuildContextMenu();
         // 復元されたスクラップは保存済みの不透明度を引き継ぐ (新規は既定 100%)
         _opacityPercent = item.OpacityPercent;
         SetOpacityPercent(_opacityPercent);
+        // 編集済みで復元された場合もここで反映される (編集なしなら元画像がそのまま入る)
+        RefreshEditedImage();
+    }
+
+    /// <summary>
+    /// 編集適用後の画像を表示へ反映し、メニューのチェック状態を更新する (SPEC-v1.7 2.8)。
+    /// ウィンドウサイズの追従は <see cref="ApplyEdit"/> が行う (復元時は配置側が持つため分けている)。
+    /// </summary>
+    private void RefreshEditedImage()
+    {
+        var edited = Item.EditedImage;
+        ScrapImage.Source = edited;
+        DiceBrush.ImageSource = edited; // サムネイルも編集結果を出す (SPEC-v1.7 2.8)
+        UpdateEditMenuState();
     }
 
     /// <summary>
@@ -142,9 +192,13 @@ public partial class ScrapWindow : Window, IScrapView
         int posX = Item.WindowPosition is { } p ? (int)p.X : _physicalRect.X;
         int posY = Item.WindowPosition is { } q ? (int)q.Y : _physicalRect.Y;
 
+        // 編集済みで復元された場合は編集後のサイズで出す。編集なしならキャプチャ元と同じ
+        // (等倍は「不変条件」ではなく「既定値」になった。SPEC-v1.7 1)
+        var (sizeX, sizeY) = Item.EditedPixelSize;
+
         var hwnd = new WindowInteropHelper(this).Handle;
         bool placed = User32.SetWindowPos(hwnd, IntPtr.Zero,
-            posX, posY, _physicalRect.Width, _physicalRect.Height,
+            posX, posY, sizeX, sizeY,
             User32.SWP_NOZORDER | User32.SWP_NOACTIVATE);
 
         var dpi = VisualTreeHelper.GetDpi(this);
@@ -152,8 +206,8 @@ public partial class ScrapWindow : Window, IScrapView
         {
             // 配置で確定したキャプチャ元モニタの DPI に合わせて DIP サイズを固定し、
             // WM_DPICHANGED による WPF 側の再配置で位置がずれないよう再固定する
-            Width = _physicalRect.Width / dpi.DpiScaleX;
-            Height = _physicalRect.Height / dpi.DpiScaleY;
+            Width = sizeX / dpi.DpiScaleX;
+            Height = sizeY / dpi.DpiScaleY;
             User32.SetWindowPos(hwnd, IntPtr.Zero, posX, posY, 0, 0,
                 User32.SWP_NOZORDER | User32.SWP_NOACTIVATE | User32.SWP_NOSIZE);
         }
@@ -163,8 +217,8 @@ public partial class ScrapWindow : Window, IScrapView
             // 混在 DPI では厳密には重ならないが、付箋を確実に画面へ出すことを優先する
             Left = posX / dpi.DpiScaleX;
             Top = posY / dpi.DpiScaleY;
-            Width = _physicalRect.Width / dpi.DpiScaleX;
-            Height = _physicalRect.Height / dpi.DpiScaleY;
+            Width = sizeX / dpi.DpiScaleX;
+            Height = sizeY / dpi.DpiScaleY;
         }
 
         // 保存済みのモニタ構成と変わり画面外に出る場合は、表示中のモニタ内へクランプする
@@ -212,6 +266,51 @@ public partial class ScrapWindow : Window, IScrapView
             opacityItem.Items.Add(presetItem);
         }
 
+        // ===== 編集 (SPEC-v1.7 2) =====
+
+        // 拡大縮小プリセット。現在値の項目にチェックを付ける (不透明度と同じ形式。SPEC-v1.7 2.2)
+        _scaleMenuItem = new MenuItem { Header = Strings.MenuScaleText };
+        foreach (int percent in ScalePresets)
+        {
+            var presetItem = new MenuItem { Header = string.Format(OpacityPresetFormat, percent), Tag = percent };
+            presetItem.Click += (_, _) => SetScalePercent((int)presetItem.Tag);
+            _scalePresetItems.Add(presetItem);
+            _scaleMenuItem.Items.Add(presetItem);
+        }
+
+        // 回転・反転 (SPEC-v1.7 2.3)。反転はキーを割り当てずメニューのみ
+        var rotateRightItem = new MenuItem
+        {
+            Header = Strings.MenuRotateRightText,
+            InputGestureText = Strings.MenuRotateRightGestureText,
+        };
+        rotateRightItem.Click += (_, _) => RotateBy(90);
+        var rotateLeftItem = new MenuItem
+        {
+            Header = Strings.MenuRotateLeftText,
+            InputGestureText = Strings.MenuRotateLeftGestureText,
+        };
+        rotateLeftItem.Click += (_, _) => RotateBy(-90);
+        _flipHorizontalItem = new MenuItem { Header = Strings.MenuFlipHorizontalText };
+        _flipHorizontalItem.Click += (_, _) => ApplyEdit(Item.Edit.ToggleFlipHorizontal());
+        _flipVerticalItem = new MenuItem { Header = Strings.MenuFlipVerticalText };
+        _flipVerticalItem.Click += (_, _) => ApplyEdit(Item.Edit.ToggleFlipVertical());
+
+        _rotateFlipMenuItem = new MenuItem { Header = Strings.MenuRotateFlipText };
+        _rotateFlipMenuItem.Items.Add(rotateRightItem);
+        _rotateFlipMenuItem.Items.Add(rotateLeftItem);
+        _rotateFlipMenuItem.Items.Add(new Separator());
+        _rotateFlipMenuItem.Items.Add(_flipHorizontalItem);
+        _rotateFlipMenuItem.Items.Add(_flipVerticalItem);
+
+        // トリム (SPEC-v1.7 2.4)。モードに入るだけで、確定は Enter
+        _trimMenuItem = new MenuItem { Header = Strings.MenuTrimText, InputGestureText = Strings.MenuTrimGestureText };
+        _trimMenuItem.Click += (_, _) => BeginTrim();
+
+        // 編集をリセット (SPEC-v1.7 2.6)。トリムし過ぎた場合の唯一の復旧手段でもある
+        _resetEditMenuItem = new MenuItem { Header = Strings.MenuResetEditText };
+        _resetEditMenuItem.Click += (_, _) => ApplyEdit(ScrapEdit.Default);
+
         // サイコロ化 ⇔ 元に戻す (状態に応じて表記切替、SPEC-v1.x 2.3)
         _diceMenuItem = new MenuItem { Header = Strings.MenuDiceText, InputGestureText = Strings.MenuDiceGestureText };
         _diceMenuItem.Click += (_, _) => ToggleDice();
@@ -230,6 +329,12 @@ public partial class ScrapWindow : Window, IScrapView
         menu.Items.Add(pasteItem);
         menu.Items.Add(savePngItem);
         menu.Items.Add(quickSaveItem);
+        menu.Items.Add(new Separator());
+        menu.Items.Add(_scaleMenuItem);
+        menu.Items.Add(_rotateFlipMenuItem);
+        menu.Items.Add(_trimMenuItem);
+        menu.Items.Add(_resetEditMenuItem);
+        menu.Items.Add(new Separator());
         menu.Items.Add(opacityItem);
         menu.Items.Add(_diceMenuItem);
         menu.Items.Add(new Separator());
@@ -238,8 +343,40 @@ public partial class ScrapWindow : Window, IScrapView
         return menu;
     }
 
+    /// <summary>
+    /// 編集メニューのチェック・有効状態を現在の <see cref="ScrapItem.Edit"/> に合わせる。
+    /// サイコロ中は編集できないため淡色表示にする (SPEC-v1.7 2.10)。
+    /// </summary>
+    private void UpdateEditMenuState()
+    {
+        var edit = Item.Edit;
+        foreach (var item in _scalePresetItems)
+        {
+            item.IsChecked = (int)item.Tag == edit.ScalePercent;
+        }
+        if (_flipHorizontalItem is not null)
+        {
+            _flipHorizontalItem.IsChecked = edit.FlipHorizontal;
+        }
+        if (_flipVerticalItem is not null)
+        {
+            _flipVerticalItem.IsChecked = edit.FlipVertical;
+        }
+        // サイコロ中の編集は 48×48 のタイルに対して意味を持たず UI も破綻する (SPEC-v1.7 2.10)
+        bool canEdit = !_isDice;
+        if (_scaleMenuItem is not null) _scaleMenuItem.IsEnabled = canEdit;
+        if (_rotateFlipMenuItem is not null) _rotateFlipMenuItem.IsEnabled = canEdit;
+        if (_trimMenuItem is not null) _trimMenuItem.IsEnabled = canEdit;
+        // 編集が無いならリセットする対象も無い (SPEC-v1.7 2.6)
+        if (_resetEditMenuItem is not null) _resetEditMenuItem.IsEnabled = canEdit && !edit.IsDefault;
+    }
+
     private void OnMouseWheel(object sender, MouseWheelEventArgs e)
     {
+        if (_isTrimming)
+        {
+            return; // トリムモード中は不透明度変更を受け付けない (SPEC-v1.7 2.4)
+        }
         // 複数ノッチ入力 (Delta = ±240 等) はノッチ数ぶんステップを適用する。
         // 1 ステップずつ進めることで、倍数へのスナップも各ステップで正しく効く
         int notches = e.Delta / Mouse.MouseWheelDeltaForOneLine;
@@ -264,8 +401,198 @@ public partial class ScrapWindow : Window, IScrapView
         }
     }
 
+    // ===== 編集 (SPEC-v1.7 2) =====
+
+    /// <summary>
+    /// 編集を差し替えて表示へ反映する (SPEC-v1.7 2.1)。
+    /// 左上位置は維持したまま、編集後のサイズへウィンドウを合わせる。
+    /// </summary>
+    /// <remarks>
+    /// 非破壊なので元画像には触れない。<see cref="ScrapItem.EditedImage"/> のキャッシュは
+    /// <see cref="ScrapItem.Edit"/> の setter が捨てるため、ここでは意識しなくてよい。
+    /// </remarks>
+    private void ApplyEdit(ScrapEdit edit)
+    {
+        // サイコロ中は編集できない (SPEC-v1.7 2.10)。キー入力からの呼び出しに対する保険
+        if (_isDice || _isTrimming)
+        {
+            return;
+        }
+        if (Item.Edit == edit)
+        {
+            return; // 値等価。上限に張り付いた状態でのキー連打などで無駄な再描画をしない
+        }
+
+        Item.Edit = edit;
+        RefreshEditedImage();
+
+        // 編集後の物理サイズへ合わせる。90/270 度回転では幅と高さが入れ替わる (SPEC-v1.7 2.3)
+        var (pixelWidth, pixelHeight) = Item.EditedPixelSize;
+        var dpi = VisualTreeHelper.GetDpi(this);
+        Width = pixelWidth / dpi.DpiScaleX;
+        Height = pixelHeight / dpi.DpiScaleY;
+
+        // サイズが変わって画面外へはみ出す場合はモニタ内へ寄せる (サイコロ復元と同じ扱い)
+        ClampIntoCurrentMonitor();
+
+        // 編集はやり直しの利かない意図的な操作なので、閉じるまで待たずに永続化を要求する
+        // (異常終了で失わないため。SPEC-v1.7 5)
+        EditApplied?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>拡大縮小率を設定する (範囲外はクランプ。SPEC-v1.7 2.2)。</summary>
+    private void SetScalePercent(int percent) => ApplyEdit(Item.Edit.WithScale(percent));
+
+    /// <summary>現在の拡大縮小率に加算する。<c>Alt+↑ / Alt+↓</c> から呼ぶ。</summary>
+    private void ScaleBy(int delta) => ApplyEdit(Item.Edit.ScaleBy(delta));
+
+    /// <summary>時計回りに回転する (負値で反時計回り。SPEC-v1.7 2.3)。</summary>
+    private void RotateBy(int degrees) => ApplyEdit(Item.Edit.RotateBy(degrees));
+
+    // ===== トリム (SPEC-v1.7 2.4) =====
+
+    /// <summary>
+    /// トリムモードに入る。通常時の左ドラッグは移動なので、モードを分けて干渉を避ける。
+    /// </summary>
+    private void BeginTrim()
+    {
+        if (_isDice || _isTrimming)
+        {
+            return;
+        }
+        _isTrimming = true;
+        _trimStartDip = null;
+        _trimSelectionDip = Rect.Empty;
+        TrimHint.Text = Strings.TrimHintText;
+        TrimSelection.Visibility = Visibility.Collapsed;
+        UpdateTrimMask();
+        TrimLayer.Visibility = Visibility.Visible;
+        // キー入力 (Enter / Esc) を受け取るためフォーカスを確実に持たせる
+        Activate();
+        Focus();
+    }
+
+    /// <summary>トリムモードを抜ける (確定・取消の共通処理)。</summary>
+    private void EndTrim()
+    {
+        _isTrimming = false;
+        _trimStartDip = null;
+        _trimSelectionDip = Rect.Empty;
+        TrimLayer.Visibility = Visibility.Collapsed;
+        TrimSelection.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// 選択範囲を確定してトリムを適用する (SPEC-v1.7 2.4)。
+    /// 範囲が極小・未選択ならキャンセル扱いにする (SPEC 4.3 と同じ判断)。
+    /// </summary>
+    private void CommitTrim()
+    {
+        var selection = _trimSelectionDip;
+        bool valid = selection.Width >= MinTrimSizeDip && selection.Height >= MinTrimSizeDip;
+        // 先にモードを抜ける。ApplyEdit は _isTrimming 中を弾くため順序が要る
+        EndTrim();
+        if (!valid)
+        {
+            return;
+        }
+
+        // DIP の選択範囲を「編集適用後の画像」の物理ピクセル座標へ直す。
+        // ScrapEdit 側がここからさらに元画像座標へ逆変換する (SPEC-v1.7 2.4)
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var displayRect = new Int32Rect(
+            (int)Math.Round(selection.X * dpi.DpiScaleX),
+            (int)Math.Round(selection.Y * dpi.DpiScaleY),
+            (int)Math.Round(selection.Width * dpi.DpiScaleX),
+            (int)Math.Round(selection.Height * dpi.DpiScaleY));
+
+        var sourceSize = new Size(_image.PixelWidth, _image.PixelHeight);
+        ApplyEdit(Item.Edit.WithTrimFromDisplay(displayRect, sourceSize));
+    }
+
+    /// <summary>
+    /// 暗幕のくり抜きと選択枠を現在の選択範囲に合わせる。
+    /// キャプチャオーバーレイと同じ見た目にして、操作を学び直させない (SPEC-v1.7 2.4)。
+    /// </summary>
+    private void UpdateTrimMask()
+    {
+        // 全体を不透明 (= 暗幕が出る) にし、選択範囲だけ透明 (= 明るく抜ける) にする
+        var geometry = new GeometryGroup { FillRule = FillRule.EvenOdd };
+        geometry.Children.Add(new RectangleGeometry(new Rect(0, 0, ActualWidth, ActualHeight)));
+        if (!_trimSelectionDip.IsEmpty)
+        {
+            geometry.Children.Add(new RectangleGeometry(_trimSelectionDip));
+        }
+        TrimMaskBrush.Drawing = new GeometryDrawing(Brushes.White, null, geometry);
+
+        if (_trimSelectionDip.IsEmpty)
+        {
+            TrimSelection.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TrimSelection.Visibility = Visibility.Visible;
+        TrimSelection.Margin = new Thickness(_trimSelectionDip.X, _trimSelectionDip.Y, 0, 0);
+        TrimSelection.Width = _trimSelectionDip.Width;
+        TrimSelection.Height = _trimSelectionDip.Height;
+    }
+
+    // ===== キー移動と移動値表示 (SPEC-v1.7 2.5) =====
+
+    /// <summary>
+    /// 付箋を物理px 単位で移動する。DIP で動かすと高 DPI で「1px 押しても動かない」が起きるため、
+    /// <c>SetWindowPos</c> で物理座標を直接動かす (SPEC-v1.7 2.5)。
+    /// </summary>
+    private void MoveByPhysical(int deltaX, int deltaY)
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero || !User32.GetWindowRect(hwnd, out var rect))
+        {
+            return;
+        }
+        int x = rect.Left + deltaX;
+        int y = rect.Top + deltaY;
+        User32.SetWindowPos(hwnd, IntPtr.Zero, x, y, 0, 0,
+            User32.SWP_NOZORDER | User32.SWP_NOACTIVATE | User32.SWP_NOSIZE);
+        ShowPositionReadout(x, y);
+    }
+
+    /// <summary>
+    /// 現在位置 (物理px) を付箋上に数値表示する。一定時間で消す (SPEC-v1.7 2.5)。
+    /// </summary>
+    private void ShowPositionReadout(int x, int y)
+    {
+        PositionText.Text = string.Format(PositionFormat, x, y);
+        PositionReadout.Visibility = Visibility.Visible;
+
+        // 操作のたびにタイマーを張り直すことで、連続移動中は表示が消えない
+        _positionReadoutTimer ??= CreatePositionReadoutTimer();
+        _positionReadoutTimer.Stop();
+        _positionReadoutTimer.Start();
+    }
+
+    private System.Windows.Threading.DispatcherTimer CreatePositionReadoutTimer()
+    {
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = PositionReadoutDuration };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            PositionReadout.Visibility = Visibility.Collapsed;
+        };
+        return timer;
+    }
+
     private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        if (_isTrimming)
+        {
+            // トリムモード中の左ドラッグは範囲選択。移動・サイコロ化は受け付けない
+            _trimStartDip = e.GetPosition(this);
+            _trimSelectionDip = Rect.Empty;
+            UpdateTrimMask();
+            CaptureMouse(); // 付箋の外まで動かしても選択を続けられるようにする
+            e.Handled = true;
+            return;
+        }
         if (e.ClickCount == 2)
         {
             // ダブルクリックでサイコロ化 ⇔ 元に戻す。
@@ -280,6 +607,25 @@ public partial class ScrapWindow : Window, IScrapView
 
     private void OnMouseMove(object sender, MouseEventArgs e)
     {
+        if (_isTrimming)
+        {
+            if (_trimStartDip is not { } trimStart || e.LeftButton != MouseButtonState.Pressed)
+            {
+                return;
+            }
+            // 選択範囲は付箋の内側へ収める (画像の外は切り出せない)
+            var trimCurrent = e.GetPosition(this);
+            double x = Math.Clamp(trimCurrent.X, 0, ActualWidth);
+            double y = Math.Clamp(trimCurrent.Y, 0, ActualHeight);
+            _trimSelectionDip = new Rect(
+                Math.Min(trimStart.X, x),
+                Math.Min(trimStart.Y, y),
+                Math.Abs(x - trimStart.X),
+                Math.Abs(y - trimStart.Y));
+            UpdateTrimMask();
+            return;
+        }
+
         if (_leftButtonDownDip is not { } start || e.LeftButton != MouseButtonState.Pressed)
         {
             return;
@@ -298,6 +644,14 @@ public partial class ScrapWindow : Window, IScrapView
 
     private void OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        if (_isTrimming)
+        {
+            // ドラッグ終了。範囲は残したまま Enter 待ちにする (SETUNA2 と同じ「選択 → Enter」)
+            _trimStartDip = null;
+            ReleaseMouseCapture();
+            e.Handled = true;
+            return;
+        }
         // 移動を伴わなかったクリック。ダブルクリック待ちのため状態だけ解除する
         _leftButtonDownDip = null;
     }
@@ -305,6 +659,10 @@ public partial class ScrapWindow : Window, IScrapView
     /// <summary>サイコロ (48×48 DIP タイル) ⇔ 元サイズをトグルする (SPEC-v1.x 2.3)。</summary>
     private void ToggleDice()
     {
+        if (_isTrimming)
+        {
+            return; // トリムモード中はサイコロ化を受け付けない (SPEC-v1.7 2.4)
+        }
         _isDice = !_isDice;
         if (_isDice)
         {
@@ -328,6 +686,7 @@ public partial class ScrapWindow : Window, IScrapView
         {
             _diceMenuItem.Header = _isDice ? Strings.MenuRestoreText : Strings.MenuDiceText;
         }
+        UpdateEditMenuState(); // サイコロ中は編集メニューを淡色にする (SPEC-v1.7 2.10)
     }
 
     /// <summary>付箋が画面外へはみ出す場合、表示中のモニタ内に収まるよう位置をクランプする (SPEC-v1.x 2.3)。</summary>
@@ -350,6 +709,17 @@ public partial class ScrapWindow : Window, IScrapView
 
     private void OnMouseDown(object sender, MouseButtonEventArgs e)
     {
+        if (_isTrimming)
+        {
+            // トリムモード中の右クリックは取消 (キャプチャオーバーレイと同じ。SPEC-v1.7 2.4)。
+            // 中クリックで閉じるのもこの間は受け付けない (誤操作で編集中の付箋を失わないため)
+            if (e.ChangedButton == MouseButton.Right)
+            {
+                EndTrim();
+                e.Handled = true;
+            }
+            return;
+        }
         if (e.ChangedButton == MouseButton.Middle)
         {
             // 中クリックで閉じる = ゴミ箱へ。破棄せず Trashed へ移す (SPEC-v1.5 2.3)
@@ -357,30 +727,130 @@ public partial class ScrapWindow : Window, IScrapView
         }
     }
 
+    /// <summary>
+    /// トリムモード中は右クリックを「取消」に使うため、コンテキストメニューを出さない
+    /// (SPEC-v1.7 2.4)。
+    /// </summary>
+    protected override void OnContextMenuOpening(ContextMenuEventArgs e)
+    {
+        if (_isTrimming)
+        {
+            e.Handled = true;
+            return;
+        }
+        // 開く直前に状態を反映する。サイコロ化・編集の変化がメニューへ確実に載る
+        UpdateEditMenuState();
+        base.OnContextMenuOpening(e);
+    }
+
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+        // Alt を伴うキーは「システムキー」として届き、e.Key は Key.System になる。
+        // 実際のキーは e.SystemKey にあるため、ここで解きほぐしてから判定する。
+        // これを忘れると Alt+↑ / Alt+↓ (拡大縮小) が一切反応しない
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+
+        // トリムモード中は Enter / Esc だけを受け付け、他の操作は素通しさせない (SPEC-v1.7 2.4)
+        if (_isTrimming)
+        {
+            if (key == Key.Enter)
+            {
+                CommitTrim();
+                e.Handled = true;
+            }
+            else if (key == Key.Escape)
+            {
+                EndTrim();
+                e.Handled = true;
+            }
+            return;
+        }
+
+        var modifiers = Keyboard.Modifiers;
+
+        if (key == Key.C && modifiers == ModifierKeys.Control)
         {
             CopyToClipboard();
             e.Handled = true;
         }
-        else if (e.Key == Key.S && Keyboard.Modifiers == ModifierKeys.Control)
+        else if (key == Key.S && modifiers == ModifierKeys.Control)
         {
             SaveWithDialog();
             e.Handled = true;
         }
-        else if (e.Key == Key.S && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+        else if (key == Key.S && modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
         {
             // 即保存は付箋ローカルのキーに割り当てる。グローバル登録を増やさず、
             // かつ「どの付箋を保存するか」が一意に決まる (SPEC-v1.6 2.2)
             QuickSave();
             e.Handled = true;
         }
-        else if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
+        else if (key == Key.V && modifiers == ModifierKeys.Control)
         {
             RequestPaste();
             e.Handled = true;
         }
+        else if (key == Key.R && modifiers == ModifierKeys.None)
+        {
+            RotateBy(90); // 右 90 度回転 (SETUNA2 の R に合わせる。SPEC-v1.7 2.3)
+            e.Handled = true;
+        }
+        else if (key == Key.R && modifiers == ModifierKeys.Shift)
+        {
+            RotateBy(-90);
+            e.Handled = true;
+        }
+        else if (key == Key.T && modifiers == ModifierKeys.None)
+        {
+            BeginTrim();
+            e.Handled = true;
+        }
+        else if (IsArrowKey(key))
+        {
+            // Alt+方向キーは拡大縮小、修飾なし / Shift は移動。修飾キーの完全一致で
+            // 分岐することで両者が競合しない (SPEC-v1.7 2.9)
+            HandleArrowKey(key, modifiers, e);
+        }
+    }
+
+    private static bool IsArrowKey(Key key) => key is Key.Up or Key.Down or Key.Left or Key.Right;
+
+    /// <summary>
+    /// 方向キーを拡大縮小 (Alt 併用) またはキー移動 (修飾なし / Shift) として処理する
+    /// (SPEC-v1.7 2.2 / 2.5)。
+    /// </summary>
+    private void HandleArrowKey(Key key, ModifierKeys modifiers, KeyEventArgs e)
+    {
+        // Alt+↑↓ = 拡大縮小 10%、Alt+Shift+↑↓ = 1% の微調整 (SPEC-v1.7 2.2)
+        if (modifiers == ModifierKeys.Alt || modifiers == (ModifierKeys.Alt | ModifierKeys.Shift))
+        {
+            if (key is not (Key.Up or Key.Down))
+            {
+                return; // Alt+←→ は割り当てなし (SETUNA2 は透明度だがホイールと重複するため見送る)
+            }
+            int step = modifiers.HasFlag(ModifierKeys.Shift)
+                ? ScrapEdit.ScaleFineStepPercent
+                : ScrapEdit.ScaleStepPercent;
+            ScaleBy(key == Key.Up ? step : -step);
+            e.Handled = true;
+            return;
+        }
+
+        // 修飾なし = 1px、Shift = 50px のキー移動 (SPEC-v1.7 2.5)
+        if (modifiers is not (ModifierKeys.None or ModifierKeys.Shift))
+        {
+            return;
+        }
+        int distance = modifiers == ModifierKeys.Shift ? MoveStepLargePx : MoveStepPx;
+        var (dx, dy) = key switch
+        {
+            Key.Up => (0, -distance),
+            Key.Down => (0, distance),
+            Key.Left => (-distance, 0),
+            _ => (distance, 0),
+        };
+        MoveByPhysical(dx, dy);
+        e.Handled = true;
     }
 
     /// <summary>
@@ -398,18 +868,23 @@ public partial class ScrapWindow : Window, IScrapView
     }
 
     /// <summary>
-    /// キャプチャ画像を物理ピクセル等倍で保存する。形式はダイアログで選べる (SPEC-v1.6 2.1)。
+    /// スクラップ画像を保存する。形式はダイアログで選べる (SPEC-v1.6 2.1)。
+    /// 編集済みなら編集結果を出力する (SPEC-v1.7 2.8)。
     /// </summary>
-    private void SaveWithDialog() => _saver.SaveWithDialog(this, _image, DateTime.Now);
+    private void SaveWithDialog() => _saver.SaveWithDialog(this, Item.EditedImage, DateTime.Now);
 
     /// <summary>ダイアログを出さず、設定フォルダへ日時名で保存する (SPEC-v1.6 2.2)。</summary>
-    private void QuickSave() => _saver.QuickSave([(_image, DateTime.Now)]);
+    private void QuickSave() => _saver.QuickSave([(Item.EditedImage, DateTime.Now)]);
 
+    /// <summary>
+    /// 画像をクリップボードへコピーする。編集済みなら編集結果を出す (SPEC-v1.7 2.8)。
+    /// 不透明度と枠線は従来どおり反映しない (SPEC-v1.x 2.2)。
+    /// </summary>
     private void CopyToClipboard()
     {
         try
         {
-            Clipboard.SetImage(_image);
+            Clipboard.SetImage(Item.EditedImage);
         }
         catch (ExternalException)
         {

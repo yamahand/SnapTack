@@ -6,8 +6,8 @@
 
 開発ドキュメントは `docs/` に集約している(ルートに置くのは README と本書のみ)。
 
-- 仕様: `docs/SPEC.md` (v1.0) + `docs/SPEC-v1.x.md` (v1.1〜v1.4) + `docs/SPEC-v1.5.md` (v1.5) + `docs/SPEC-v1.6.md` (v1.6)
-- 実装順: `docs/MILESTONES.md` (M1〜M6) + `docs/MILESTONES-v1.x.md` (M7〜M12) + `docs/MILESTONES-v1.5.md` (M13〜M17) + `docs/MILESTONES-v1.6.md` (M18〜M19 実装済み、M20〜 は **草案**)
+- 仕様: `docs/SPEC.md` (v1.0) + `docs/SPEC-v1.x.md` (v1.1〜v1.4) + `docs/SPEC-v1.5.md` (v1.5) + `docs/SPEC-v1.6.md` (v1.6) + `docs/SPEC-v1.7.md` (v1.7)
+- 実装順: `docs/MILESTONES.md` (M1〜M6) + `docs/MILESTONES-v1.x.md` (M7〜M12) + `docs/MILESTONES-v1.5.md` (M13〜M17) + `docs/MILESTONES-v1.6.md` (M18〜M20 実装済み、M21〜 は **草案**)
 - 調査資料: `docs/SETUNA2-gap-analysis.md` (SETUNA2 との機能差分)
 - CI 方針: `docs/CI.md`
 
@@ -45,6 +45,21 @@ tests/SnapTack.Tests/   xUnit
 言語切替の即時反映は**今も表示中の付箋には及ぼさない**(付箋は生成時の言語で確定する)。中央管理に変わっても、この挙動は維持する。
 
 v1.6 でキャプチャ以外の作成経路(クリップボード貼り付け・D&D)が増えたが、**生成は必ず `ScrapManager` 経由**にする(`AddExternal`)。経路が増えても永続化・上限管理・二重表示防止が一箇所で効くようにするため。外部画像は元位置を持たないのでカーソル位置に配置する(`docs/SPEC-v1.6.md` 3.4)。
+
+### スクラップの編集は非破壊
+
+拡大縮小・回転・反転・トリム (M20) は**元画像を書き換えない**。`ScrapEdit`(変換パラメータ)を
+`ScrapItem` に持たせ、表示・コピー・保存の各時点で適用する(`docs/SPEC-v1.7.md` 2.1)。
+`scraps/<id>.png` には**常に元画像**が入る。これにより拡大↔縮小の往復で劣化せず、
+「編集をリセット」で必ず元へ戻せる。
+
+適用順は **トリム → 回転 → 反転 → 拡大縮小** で固定。`Apply` で回転と反転を `TransformGroup` に
+まとめる際は **`Children` に回転を先に入れる**こと。トリムの逆変換が「反転→回転」の順で解く前提のため、
+入れ替えると**回転と反転を併用した時だけ**トリム位置がずれる(実装中に踏んだ)。
+`TrimRoundTripTests` が画素単位で往復を検証しているので、順序を触ると落ちる。
+
+等倍表示は SPEC 4.4 の**不変条件から既定値へ格下げ**された。ただし
+**アプリが勝手に縮小することはない**(大きい画像でも等倍のまま。`docs/SPEC-v1.6.md` 3.4 と一貫)。
 
 ### キャプチャのフリーズ方式
 

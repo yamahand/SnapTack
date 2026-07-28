@@ -25,8 +25,15 @@ public sealed class ScrapListItem
     /// <summary>キャプチャ日時 (現在のカルチャの短い日時書式)。</summary>
     public string CapturedAtText => Item.CapturedAt.LocalDateTime.ToString("g");
 
-    /// <summary>サイズ (物理px)。</summary>
-    public string SizeText => string.Format(SizeFormat, Item.PhysicalRect.Width, Item.PhysicalRect.Height);
+    /// <summary>サイズ (物理px)。編集済みなら編集後のサイズを出す (SPEC-v1.7 2.8)。</summary>
+    public string SizeText
+    {
+        get
+        {
+            var (width, height) = Item.EditedPixelSize;
+            return string.Format(SizeFormat, width, height);
+        }
+    }
 
     /// <summary>状態の短い表記 (Pinned / Stashed の区別)。Trashed では空。</summary>
     public string StateText => Item.State switch
@@ -39,7 +46,9 @@ public sealed class ScrapListItem
     public ScrapListItem(ScrapItem item)
     {
         Item = item;
-        Thumbnail = CreateThumbnail(item.Image);
+        // 一覧と画面上の見た目が食い違うと判別できなくなるため、編集結果からサムネイルを作る
+        // (SPEC-v1.7 2.8)
+        Thumbnail = CreateThumbnail(item.EditedImage);
     }
 
     /// <summary>元画像を縮小デコードしてサムネイルを作る。中央クロップは表示側の UniformToFill で行う。</summary>

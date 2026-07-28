@@ -94,6 +94,96 @@ public sealed class ScrapStoreTests : IDisposable
         Assert.Empty(loaded);
     }
 
+    // ===== 編集パラメータの永続化 (SPEC-v1.7 5) =====
+
+    [Fact]
+    public void 編集パラメータを保存して読み直すと一致する()
+    {
+        var store = NewStore();
+        var item = NewScrap();
+        item.Edit = new ScrapEdit
+        {
+            ScalePercent = 200,
+            RotationDegrees = 90,
+            FlipHorizontal = true,
+            TrimRect = new Int32Rect(0, 0, 1, 2),
+        };
+
+        Assert.True(store.SaveImage(item));
+        Assert.True(store.SaveIndex(new[] { item }));
+
+        var one = Assert.Single(NewStore().Load(out _));
+
+        Assert.Equal(200, one.Edit.ScalePercent);
+        Assert.Equal(90, one.Edit.RotationDegrees);
+        Assert.True(one.Edit.FlipHorizontal);
+        Assert.False(one.Edit.FlipVertical);
+        Assert.Equal(new Int32Rect(0, 0, 1, 2), one.Edit.TrimRect);
+    }
+
+    [Fact]
+    public void v1のindexは編集なしとして読める()
+    {
+        // v1.6 以前が書いた index。編集パラメータのキーが無くても既定値で補って読む
+        var store = NewStore();
+        var item = NewScrap();
+        store.SaveImage(item);
+        File.WriteAllText(IndexPath, $$"""
+            {
+              "SchemaVersion": 1,
+              "Scraps": [
+                {
+                  "Id": "{{item.Id}}",
+                  "CapturedAt": "2026-01-01T00:00:00+00:00",
+                  "State": "Pinned",
+                  "PhysicalRect": { "X": 10, "Y": 20, "Width": 2, "Height": 2 },
+                  "OpacityPercent": 100
+                }
+              ]
+            }
+            """);
+
+        var loaded = NewStore().Load(out bool needsRewrite);
+
+        var one = Assert.Single(loaded);
+        // 「編集していないスクラップ」として復元され、v1.6 以前と同じ見た目になる
+        Assert.True(one.Edit.IsDefault);
+        // 旧形式から読んだので現行形式へ書き直す対象になる
+        Assert.True(needsRewrite);
+    }
+
+    [Fact]
+    public void 壊れた編集パラメータは正規化して読む()
+    {
+        // 手編集・別バージョン由来の不正値。落とさず既定へ倒す
+        var store = NewStore();
+        var item = NewScrap();
+        store.SaveImage(item);
+        File.WriteAllText(IndexPath, $$"""
+            {
+              "SchemaVersion": 2,
+              "Scraps": [
+                {
+                  "Id": "{{item.Id}}",
+                  "CapturedAt": "2026-01-01T00:00:00+00:00",
+                  "State": "Pinned",
+                  "PhysicalRect": { "X": 10, "Y": 20, "Width": 2, "Height": 2 },
+                  "OpacityPercent": 100,
+                  "ScalePercent": 5000,
+                  "RotationDegrees": 45,
+                  "TrimRect": { "X": 0, "Y": 0, "Width": 0, "Height": 0 }
+                }
+              ]
+            }
+            """);
+
+        var one = Assert.Single(NewStore().Load(out _));
+
+        Assert.Equal(ScrapEdit.MaxScalePercent, one.Edit.ScalePercent); // クランプされる
+        Assert.Equal(0, one.Edit.RotationDegrees);                     // 90 の倍数でないので 0
+        Assert.Null(one.Edit.TrimRect);                                // 幅 0 は成立しない
+    }
+
     [Fact]
     public void 画像が欠けているエントリは読み飛ばし書き直しを要求する()
     {
