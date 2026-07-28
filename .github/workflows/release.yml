@@ -21,6 +21,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # 直前のタグを引くために全履歴とタグを取得する。既定 (fetch-depth: 1) では
+          # タグが手元に無く、Full Changelog の比較リンクを組み立てられない
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -76,14 +80,50 @@ jobs:
         shell: pwsh
         run: Get-ChildItem artifacts -File | Select-Object Name, Length
 
-      # ドラフトとして作成する。内容を確認しリリースノートを書いてから手動で公開する
+      # docs/release-notes-vX.Y.Z.md をリリース本文にする。
+      # 自動生成 (generate_release_notes) は使わない: PR 名は開発都合の文言で
+      # 利用者向けではなく、機能単位で書いたノートと内容が二重になるため。
+      # 差分を追う導線として Full Changelog のリンクだけは末尾に添える。
+      - name: Prepare release notes
+        id: notes
+        shell: pwsh
+        run: |
+          $version = '${{ steps.ver.outputs.version }}'
+          $notesPath = "docs/release-notes-v$version.md"
+          if (-not (Test-Path $notesPath)) {
+            # 黙って自動生成へ倒すと、消したはずの PR 一覧が復活して気付きにくい。
+            # ノートの用意漏れはここで明示的に失敗させる
+            Write-Host "::error::リリースノートが見つかりません: $notesPath"
+            Write-Host "::error::docs/release-notes-v$version.md を作成してからタグを push してください。"
+            exit 1
+          }
+
+          # 直前のタグとの比較リンクを添える。初回リリース (直前タグ無し) では省く
+          $previous = git tag --list 'v*' --sort=-v:refname |
+            Where-Object { $_ -ne "v$version" } |
+            Select-Object -First 1
+
+          $body = Get-Content $notesPath -Raw
+          if ($previous) {
+            $compare = "${{ github.server_url }}/${{ github.repository }}/compare/$previous...v$version"
+            $body += "`n`n---`n`n**Full Changelog**: $compare`n"
+            Write-Host "Full Changelog: $previous...v$version"
+          } else {
+            Write-Host "直前のタグが無いため Full Changelog は付けません。"
+          }
+
+          $outPath = Join-Path $env:RUNNER_TEMP 'release-body.md'
+          Set-Content -Path $outPath -Value $body -Encoding utf8NoBOM
+          "path=$outPath" >> $env:GITHUB_OUTPUT
+
+      # ドラフトとして作成する。内容を確認してから手動で公開する
       - name: Create draft release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.ver.outputs.version }}
           name: v${{ steps.ver.outputs.version }}
           draft: true
-          generate_release_notes: true
+          body_path: ${{ steps.notes.outputs.path }}
           files: |
             artifacts/*.zip
             artifacts/*setup.exe
