@@ -103,4 +103,18 @@ internal static class Strings
     // ===== スクラップの作成方法の追加 (TrayIcon.cs / ScrapListWindow.xaml.cs) =====
     public static string MenuPasteText => Get(nameof(MenuPasteText));
     public static string PasteFailedMessage => Get(nameof(PasteFailedMessage));
+
+    // ===== スクラップの編集 (ScrapWindow.xaml.cs。SPEC-v1.7 2) =====
+    public static string MenuScaleText => Get(nameof(MenuScaleText));
+    public static string MenuRotateFlipText => Get(nameof(MenuRotateFlipText));
+    public static string MenuRotateRightText => Get(nameof(MenuRotateRightText));
+    public static string MenuRotateRightGestureText => Get(nameof(MenuRotateRightGestureText));
+    public static string MenuRotateLeftText => Get(nameof(MenuRotateLeftText));
+    public static string MenuRotateLeftGestureText => Get(nameof(MenuRotateLeftGestureText));
+    public static string MenuFlipHorizontalText => Get(nameof(MenuFlipHorizontalText));
+    public static string MenuFlipVerticalText => Get(nameof(MenuFlipVerticalText));
+    public static string MenuTrimText => Get(nameof(MenuTrimText));
+    public static string MenuTrimGestureText => Get(nameof(MenuTrimGestureText));
+    public static string MenuResetEditText => Get(nameof(MenuResetEditText));
+    public static string TrimHintText => Get(nameof(TrimHintText));
 }

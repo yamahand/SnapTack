@@ -193,6 +193,47 @@ public sealed class ScrapManager
     private void SaveIndex() => _store?.SaveIndex(_items);
 
     /// <summary>
+    /// 編集の永続化を予約する (SPEC-v1.7 5)。
+    /// </summary>
+    /// <remarks>
+    /// 編集はやり直しの利かない意図的な操作なので、閉じるまで待たず速やかに書く。
+    /// ただし <c>Alt+↑</c> のキーリピートは短時間に大量の編集を生むため、
+    /// **まとめて 1 回だけ書く**ようディスク書き込みを先送りする。
+    /// タイマーは UI スレッドで動くので <see cref="_items"/> への同時アクセスは起きない。
+    /// </remarks>
+    private void ScheduleEditSave()
+    {
+        // 一覧のサムネイル・サイズ表示を編集に追従させる (書き込みと違い即時でよい)。
+        // 永続化の有無とは独立なので、_store が null でも必ず通知する
+        RaiseChanged();
+
+        if (_store is null)
+        {
+            return;
+        }
+        _editSaveTimer ??= CreateEditSaveTimer();
+        _editSaveTimer.Stop();  // 連続入力の間は先送りし続ける
+        _editSaveTimer.Start();
+    }
+
+    private System.Windows.Threading.DispatcherTimer CreateEditSaveTimer()
+    {
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = EditSaveDelay };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            SaveIndex();
+        };
+        return timer;
+    }
+
+    // 編集の書き込みをまとめる待ち時間。キーリピートが止まってから書く程度に短く、
+    // それでいて 1 ストロークごとにディスクを叩かない程度には長い値
+    private static readonly TimeSpan EditSaveDelay = TimeSpan.FromMilliseconds(500);
+
+    private System.Windows.Threading.DispatcherTimer? _editSaveTimer;
+
+    /// <summary>
     /// 状態を遷移させ、<see cref="ScrapItem.TrashedAt"/> の不変条件を保つ。
     /// Trashed へ入る時のみ日時を打ち、Trashed から離れる時は必ず null に戻す
     /// (Stashed など Trashed 以外では null であるべき。SPEC-v1.5 2.4 の自動削除判定が誤らないよう)。
@@ -220,6 +261,8 @@ public sealed class ScrapManager
         // 付箋上の Ctrl+V。生成を Manager 経由に保つため、位置だけ受け取ってここで作る
         // (SPEC-v1.6 3.5)。貼るものが無ければ何もしない
         view.PasteRequested += (_, position) => PasteFromClipboardAt(position);
+        // 編集は閉じるまで待たずに永続化する (SPEC-v1.7 5)
+        view.EditApplied += (_, _) => ScheduleEditSave();
         // どの閉じ方 (ユーザー操作・Manager からの明示閉じ) でも対応を解除する
         view.Closed += (_, _) => _views.Remove(item);
         _views[item] = view;
@@ -357,6 +400,10 @@ public sealed class ScrapManager
     /// </summary>
     public void SaveAll()
     {
+        // 予約中の編集保存があれば取り消す。この後の SaveIndex がまとめて書くため
+        // (先送り中に終了しても編集を失わない。SPEC-v1.7 5)
+        _editSaveTimer?.Stop();
+
         foreach (var view in _views.Values)
         {
             view.SaveStateToItem();

@@ -13,8 +13,12 @@ namespace SnapTack.Models;
 /// </summary>
 public sealed class ScrapStore
 {
-    // index の形式バージョン。未知 (将来の形式) の場合は解釈せず空で起動する (SPEC-v1.5 2.4)
-    private const int CurrentSchemaVersion = 1;
+    // index の形式バージョン。未知 (将来の形式) の場合は解釈せず空で起動する (SPEC-v1.5 2.4)。
+    // v2 で編集パラメータを追加した (SPEC-v1.7 5)。v1 は追加項目を既定値で補って読める
+    private const int CurrentSchemaVersion = 2;
+
+    // 読み込みを受け付ける最小の形式バージョン。v1 = v1.6 以前 (編集パラメータが無い)
+    private const int MinReadableSchemaVersion = 1;
     private const string ScrapsFolderName = "scraps";
     private const string IndexFileName = "index.json";
 
@@ -75,10 +79,18 @@ public sealed class ScrapStore
             return [];
         }
 
-        // 未知スキーマ (将来の形式) は無理に解釈しない。既存データを壊さないよう空で起動する
-        if (index is null || index.SchemaVersion != CurrentSchemaVersion || index.Scraps is null)
+        // 未知スキーマ (将来の形式) は無理に解釈しない。既存データを壊さないよう空で起動する。
+        // 過去の形式 (v1) は読める。欠けている編集パラメータは DTO の既定値で補われ、
+        // 「編集していないスクラップ」として復元される (SPEC-v1.7 5)
+        if (index is null || index.Scraps is null ||
+            index.SchemaVersion < MinReadableSchemaVersion || index.SchemaVersion > CurrentSchemaVersion)
         {
             return [];
+        }
+        // 旧形式から読んだ場合は、次の保存で現行形式へ書き換わるよう書き直しを促す
+        if (index.SchemaVersion < CurrentSchemaVersion)
+        {
+            indexNeedsRewrite = true;
         }
 
         var items = new List<ScrapItem>(index.Scraps.Count);
@@ -118,6 +130,8 @@ public sealed class ScrapStore
             OpacityPercent = entry.OpacityPercent,
             IsDice = entry.IsDice,
             WindowPosition = entry.WindowPosition is { } wp ? new Point(wp.X, wp.Y) : null,
+            // v1 の index には無い項目。DTO の既定値で「編集なし」になる (SPEC-v1.7 5)
+            Edit = ToEdit(entry),
         };
         // 画像は初回参照時に読む (遅延読み込み。SPEC-v1.5 3.3)
         item.SetImageLoader(() => LoadImage(imagePath));
@@ -260,6 +274,28 @@ public sealed class ScrapStore
 
     // ===== DTO =====
 
+    /// <summary>
+    /// index エントリから編集パラメータを組み立てる (SPEC-v1.7 5)。
+    /// 値は保存時に壊れている可能性 (手編集・別バージョン) を考慮して正規化する。
+    /// </summary>
+    private static ScrapEdit ToEdit(ScrapEntry entry)
+    {
+        // 回転は 90 の倍数のみ受け付ける。想定外の値は 0 (回転なし) に倒す
+        int rotation = entry.RotationDegrees is 90 or 180 or 270 ? entry.RotationDegrees : 0;
+        var trim = entry.TrimRect is { } t && t.Width > 0 && t.Height > 0
+            ? new Int32Rect(t.X, t.Y, t.Width, t.Height)
+            : (Int32Rect?)null;
+
+        return new ScrapEdit
+        {
+            ScalePercent = ScrapEdit.ClampScale(entry.ScalePercent),
+            RotationDegrees = rotation,
+            FlipHorizontal = entry.FlipHorizontal,
+            FlipVertical = entry.FlipVertical,
+            TrimRect = trim,
+        };
+    }
+
     private static ScrapEntry ToEntry(ScrapItem item) => new()
     {
         Id = item.Id.ToString(),
@@ -276,6 +312,13 @@ public sealed class ScrapStore
         OpacityPercent = item.OpacityPercent,
         IsDice = item.IsDice,
         WindowPosition = item.WindowPosition is { } p ? new PointDto { X = p.X, Y = p.Y } : null,
+        ScalePercent = item.Edit.ScalePercent,
+        RotationDegrees = item.Edit.RotationDegrees,
+        FlipHorizontal = item.Edit.FlipHorizontal,
+        FlipVertical = item.Edit.FlipVertical,
+        TrimRect = item.Edit.TrimRect is { } t
+            ? new RectDto { X = t.X, Y = t.Y, Width = t.Width, Height = t.Height }
+            : null,
     };
 
     private sealed class ScrapIndex
@@ -294,6 +337,14 @@ public sealed class ScrapStore
         public int OpacityPercent { get; set; } = 100;
         public bool IsDice { get; set; }
         public PointDto? WindowPosition { get; set; }
+
+        // 編集パラメータ (v2 で追加。SPEC-v1.7 5)。既定値は「編集なし」を表すため、
+        // v1 の index を読んでも v1.6 以前と同じ見た目で復元される
+        public int ScalePercent { get; set; } = 100;
+        public int RotationDegrees { get; set; }
+        public bool FlipHorizontal { get; set; }
+        public bool FlipVertical { get; set; }
+        public RectDto? TrimRect { get; set; }
     }
 
     private sealed class RectDto

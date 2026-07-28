@@ -286,4 +286,41 @@
     <value>画像ファイルからスクラップを作成できませんでした。
 ファイルが壊れているか、対応していない形式の可能性があります。</value>
   </data>
+  <data name="MenuScaleText" xml:space="preserve">
+    <value>拡大縮小</value>
+  </data>
+  <data name="MenuRotateFlipText" xml:space="preserve">
+    <value>回転 / 反転</value>
+  </data>
+  <data name="MenuRotateRightText" xml:space="preserve">
+    <value>右に 90° 回転</value>
+  </data>
+  <data name="MenuRotateRightGestureText" xml:space="preserve">
+    <value>R</value>
+  </data>
+  <data name="MenuRotateLeftText" xml:space="preserve">
+    <value>左に 90° 回転</value>
+  </data>
+  <data name="MenuRotateLeftGestureText" xml:space="preserve">
+    <value>Shift+R</value>
+  </data>
+  <data name="MenuFlipHorizontalText" xml:space="preserve">
+    <value>左右反転</value>
+  </data>
+  <data name="MenuFlipVerticalText" xml:space="preserve">
+    <value>上下反転</value>
+  </data>
+  <data name="MenuTrimText" xml:space="preserve">
+    <value>トリム...</value>
+  </data>
+  <data name="MenuTrimGestureText" xml:space="preserve">
+    <value>T</value>
+  </data>
+  <data name="MenuResetEditText" xml:space="preserve">
+    <value>編集をリセット</value>
+  </data>
+  <data name="TrimHintText" xml:space="preserve">
+    <value>ドラッグで範囲選択、Enter で確定、Esc で取消</value>
+    <comment>トリムモード中に付箋の上部へ重ねて表示する操作ヒント</comment>
+  </data>
 </root>

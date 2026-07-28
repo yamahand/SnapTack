@@ -19,6 +19,9 @@ public sealed class ScrapItem
     private Func<BitmapSource>? _imageLoader;
     private BitmapSource? _image;
 
+    private ScrapEdit _edit = ScrapEdit.Default;
+    private BitmapSource? _editedImage; // 変換結果のキャッシュ。Edit の変更で捨てる
+
     /// <summary>スクラップの一意な ID。画像ファイル名 (&lt;id&gt;.png) と対応する。</summary>
     public Guid Id { get; }
 
@@ -42,6 +45,38 @@ public sealed class ScrapItem
 
     /// <summary>サイコロ (最小化タイル) 状態か (SPEC-v1.x 2.3)。</summary>
     public bool IsDice { get; set; }
+
+    /// <summary>
+    /// 適用中の編集 (拡大縮小・回転・反転・トリム。SPEC-v1.7 2.1)。既定は編集なし。
+    /// 設定すると <see cref="EditedImage"/> のキャッシュを捨てる。
+    /// </summary>
+    public ScrapEdit Edit
+    {
+        get => _edit;
+        set
+        {
+            if (_edit == value)
+            {
+                return; // record の値等価。同じ内容ならキャッシュを保つ
+            }
+            _edit = value;
+            _editedImage = null;
+        }
+    }
+
+    /// <summary>
+    /// 編集を適用した画像 (SPEC-v1.7 2.8)。表示・コピー・保存・サムネイルはすべてこれを使う。
+    /// 編集が無ければ <see cref="Image"/> と同一のインスタンスを返す。
+    /// </summary>
+    /// <remarks>
+    /// 変換のたびに再サンプリングするとキー連打で目に見えて重くなるため、
+    /// <see cref="Edit"/> が変わるまでキャッシュする (SPEC-v1.7 6)。
+    /// </remarks>
+    public BitmapSource EditedImage => _editedImage ??= _edit.Apply(Image);
+
+    /// <summary>編集適用後の物理ピクセルサイズ。画像を生成せずに付箋のサイズを決めるのに使う。</summary>
+    public (int Width, int Height) EditedPixelSize =>
+        _edit.GetResultSize(PhysicalRect.Width, PhysicalRect.Height);
 
     /// <summary>
     /// 最後に表示していた位置 (物理px)。未移動なら null で <see cref="PhysicalRect"/> の位置を使う。

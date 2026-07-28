@@ -31,5 +31,42 @@
         <Rectangle Stroke="#FF808080"
                    StrokeThickness="1"
                    IsHitTestVisible="False" />
+
+        <!-- トリムモード (SPEC-v1.7 2.4)。キャプチャオーバーレイと同じ見た目にして操作を学び直させない。
+             暗幕を OpacityMask でくり抜くことで、選択範囲だけが明るく見える -->
+        <Grid x:Name="TrimLayer" Visibility="Collapsed">
+            <Rectangle x:Name="TrimShade" Fill="#80000000" IsHitTestVisible="False">
+                <Rectangle.OpacityMask>
+                    <DrawingBrush x:Name="TrimMaskBrush" Stretch="None" AlignmentX="Left" AlignmentY="Top" />
+                </Rectangle.OpacityMask>
+            </Rectangle>
+            <!-- 選択範囲の枠。位置は Margin で動かす (Canvas を挟まず済ませる) -->
+            <Rectangle x:Name="TrimSelection"
+                       Stroke="#FFFFFFFF"
+                       StrokeThickness="1"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Top"
+                       Visibility="Collapsed"
+                       IsHitTestVisible="False" />
+            <!-- 操作ヒント。トリムはモード制なので、抜け方が分からなくならないよう常に出す -->
+            <Border Background="#B0000000"
+                    VerticalAlignment="Top"
+                    HorizontalAlignment="Center"
+                    Padding="6,2"
+                    IsHitTestVisible="False">
+                <TextBlock x:Name="TrimHint" Foreground="White" FontSize="11" />
+            </Border>
+        </Grid>
+
+        <!-- 移動値の数値表示 (SPEC-v1.7 2.5)。操作後 1 秒で消えるので常時は画像を隠さない -->
+        <Border x:Name="PositionReadout"
+                Background="#B0000000"
+                VerticalAlignment="Top"
+                HorizontalAlignment="Left"
+                Padding="6,2"
+                Visibility="Collapsed"
+                IsHitTestVisible="False">
+            <TextBlock x:Name="PositionText" Foreground="White" FontSize="11" />
+        </Border>
     </Grid>
 </Window>
