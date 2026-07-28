@@ -18,6 +18,7 @@ Clip part of a document, an error message, or a reference image in an instant, p
 - Scroll the mouse wheel to change opacity, double-click to fold a note into a small tile to save space
 - **Save as PNG, JPEG, or BMP** (JPEG quality is adjustable), or use **quick save** to drop a timestamped file into a folder of your choice with no dialog at all. Optionally copies the saved path to the clipboard
 - **Make notes from images you already have** — paste from the clipboard via the tray menu or `Ctrl+V` on a note, or drop image files onto the scrap list
+- **Edit notes after you pin them** — scale from 25% to 400%, rotate, flip, and trim away the parts you don't need. Editing is non-destructive, so **Reset edits** always brings the original back
 - **Scrap list** — open it with **Ctrl+Shift+L** to browse every scrap as a thumbnail. Show or hide notes, copy or save them, and recover closed ones from the trash
 - **Scraps persist across restarts.** Pinned notes come back where you left them next time you launch. Closing a note sends it to the trash instead of losing it, and the trash auto-clears after a configurable number of days
 - Multi-monitor support. Captures at 1:1 physical pixels, with no positional drift even across mixed DPI scaling such as 125% / 150% (Per-Monitor V2 aware)
@@ -67,11 +68,22 @@ Click **More info** and then **Run anyway** to start the app.
 | `Ctrl+S` | Save to a file (choose PNG / JPEG / BMP in the dialog) |
 | `Ctrl+Shift+S` | Quick save — no dialog, straight to your quick save folder |
 | Mouse wheel | Change opacity (20–100%) |
+| `Alt+↑` / `Alt+↓` | Scale up / down by 10% (25–400%) |
+| `Alt+Shift+↑` / `Alt+Shift+↓` | Scale by 1% for fine adjustment |
+| `R` / `Shift+R` | Rotate 90° right / left |
+| `T` | Trim — drag to select, `Enter` to apply, `Esc` to cancel |
+| `↑↓←→` / `Shift+↑↓←→` | Move by 1px / 50px, showing the position as you go |
 | Double-click | Fold into a tile / restore |
 | Middle-click | Close |
-| Right-click | Menu (copy / paste / save / quick save / opacity / fold / close / hide to list) |
+| Right-click | Menu (copy / paste / save / quick save / scale / rotate / flip / trim / reset edits / opacity / fold / close / hide to list) |
 
 You can pin as many notes as you like at once. Closing them all leaves the app running in the tray — quit from the tray menu's **Exit**.
+
+### Editing notes
+
+Scaling, rotating, flipping, and trimming are **non-destructive** — the original image is kept, so repeated scaling never degrades it and **Reset edits** always restores the original. Copying and saving give you the edited result, exactly as it appears on screen. Edits persist across restarts.
+
+Notes you never edit look and behave exactly as they did before: 1:1 physical pixels, unscaled.
 
 ### The scrap list
 
