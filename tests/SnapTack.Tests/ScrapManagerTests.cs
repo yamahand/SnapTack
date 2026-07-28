@@ -32,6 +32,7 @@ public class ScrapManagerTests : IDisposable
         public event EventHandler? TrashRequested;
         public event EventHandler? StashRequested;
         public event EventHandler<Point>? PasteRequested;
+        public event EventHandler? EditApplied;
         public event EventHandler? Closed;
 
         public FakeView(ScrapItem item) => Item = item;
@@ -51,6 +52,7 @@ public class ScrapManagerTests : IDisposable
         public void UserTrash() => TrashRequested?.Invoke(this, EventArgs.Empty);
         public void UserStash() => StashRequested?.Invoke(this, EventArgs.Empty);
         public void UserPaste(Point position) => PasteRequested?.Invoke(this, position);
+        public void UserEdit() => EditApplied?.Invoke(this, EventArgs.Empty);
     }
 
     private static BitmapSource MakeImage() =>
@@ -445,6 +447,43 @@ public class ScrapManagerTests : IDisposable
         var one = Assert.Single(m2.Items);
         Assert.Equal(added.Id, one.Id);
         Assert.Equal(ScrapState.Stashed, one.State);
+    }
+
+    // ===== 編集の永続化 (SPEC-v1.7 5) =====
+
+    [Fact]
+    public void 編集は終了時に永続化される()
+    {
+        // 編集はやり直しの利かない操作なので失わないこと。
+        // 書き込み自体は短時間まとめられるが、SaveAll が予約分を確実に書き切る
+        var store = NewStore();
+        var (m, views) = NewManager(store: store);
+        var item = Add(m);
+
+        item.Edit = ScrapEdit.Default.WithScale(200).RotateBy(90);
+        views[item].UserEdit();
+        m.SaveAll();
+
+        var (m2, _) = NewManager(store: NewStore());
+        m2.RestoreFromDisk();
+
+        var one = Assert.Single(m2.Items);
+        Assert.Equal(200, one.Edit.ScalePercent);
+        Assert.Equal(90, one.Edit.RotationDegrees);
+    }
+
+    [Fact]
+    public void 編集すると一覧へ変更が通知される()
+    {
+        // スクラップリストのサムネイル・サイズ表示を編集に追従させるため
+        var (m, views) = NewManager();
+        var item = Add(m);
+        int changed = 0;
+        m.Changed += (_, _) => changed++;
+
+        views[item].UserEdit();
+
+        Assert.Equal(1, changed);
     }
 
     [Fact]

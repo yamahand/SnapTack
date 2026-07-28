@@ -290,7 +290,8 @@ public partial class ScrapListWindow : Window
         }
         try
         {
-            Clipboard.SetImage(first.Image);
+            // 編集済みなら編集結果をコピーする (SPEC-v1.7 2.8)
+            Clipboard.SetImage(first.EditedImage);
         }
         catch (ExternalException)
         {
@@ -308,7 +309,7 @@ public partial class ScrapListWindow : Window
         {
             return;
         }
-        _saver.SaveWithDialog(this, first.Image, first.CapturedAt.LocalDateTime);
+        _saver.SaveWithDialog(this, first.EditedImage, first.CapturedAt.LocalDateTime);
     }
 
     /// <summary>
@@ -321,7 +322,7 @@ public partial class ScrapListWindow : Window
         {
             return;
         }
-        _saver.QuickSave(targets.Select(item => (item.Image, item.CapturedAt.LocalDateTime)));
+        _saver.QuickSave(targets.Select(item => (item.EditedImage, item.CapturedAt.LocalDateTime)));
     }
 
     // ===== ドラッグ&ドロップによるスクラップ作成 (SPEC-v1.6 3.3) =====

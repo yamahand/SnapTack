@@ -295,4 +295,41 @@ It may conflict with another app.
     <value>Could not create a scrap from the image file.
 The file may be corrupted or in an unsupported format.</value>
   </data>
+  <data name="MenuScaleText" xml:space="preserve">
+    <value>Scale</value>
+  </data>
+  <data name="MenuRotateFlipText" xml:space="preserve">
+    <value>Rotate / Flip</value>
+  </data>
+  <data name="MenuRotateRightText" xml:space="preserve">
+    <value>Rotate right 90°</value>
+  </data>
+  <data name="MenuRotateRightGestureText" xml:space="preserve">
+    <value>R</value>
+  </data>
+  <data name="MenuRotateLeftText" xml:space="preserve">
+    <value>Rotate left 90°</value>
+  </data>
+  <data name="MenuRotateLeftGestureText" xml:space="preserve">
+    <value>Shift+R</value>
+  </data>
+  <data name="MenuFlipHorizontalText" xml:space="preserve">
+    <value>Flip horizontally</value>
+  </data>
+  <data name="MenuFlipVerticalText" xml:space="preserve">
+    <value>Flip vertically</value>
+  </data>
+  <data name="MenuTrimText" xml:space="preserve">
+    <value>Trim...</value>
+  </data>
+  <data name="MenuTrimGestureText" xml:space="preserve">
+    <value>T</value>
+  </data>
+  <data name="MenuResetEditText" xml:space="preserve">
+    <value>Reset edits</value>
+  </data>
+  <data name="TrimHintText" xml:space="preserve">
+    <value>Drag to select, Enter to apply, Esc to cancel</value>
+    <comment>トリムモード中に付箋の上部へ重ねて表示する操作ヒント</comment>
+  </data>
 </root>

@@ -24,6 +24,12 @@ public interface IScrapView
     /// </summary>
     event EventHandler<System.Windows.Point>? PasteRequested;
 
+    /// <summary>
+    /// ユーザーが編集 (拡大縮小・回転・反転・トリム) を適用した (SPEC-v1.7 5)。
+    /// 編集は「やり直しの利かない意図的な操作」なので、閉じるまで待たずに永続化する。
+    /// </summary>
+    event EventHandler? EditApplied;
+
     /// <summary>ウィンドウが閉じられた(プログラム由来を含む全ての閉じ)。</summary>
     event EventHandler? Closed;
 
