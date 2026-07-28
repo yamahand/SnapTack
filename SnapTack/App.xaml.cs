@@ -18,9 +18,6 @@ public partial class App : Application
     // 製品名は翻訳しない。翻訳対象の文字列は Resources/Strings.resx を参照
     private const string AppName = "SnapTack";
 
-    // 二重起動防止用の Mutex 名 (同一ユーザーセッション内で一意)
-    private const string MutexName = "SnapTack_SingleInstanceMutex";
-
     private readonly SettingsService _settings = new(new SettingsStore());
     private readonly CaptureController _capture = new(new GdiScreenCapturer());
     private ScrapManager? _scraps;
@@ -31,7 +28,7 @@ public partial class App : Application
     /// </summary>
     public static bool IsShuttingDown { get; private set; }
 
-    private Mutex? _mutex;
+    private SingleInstance? _singleInstance;
     private TrayIcon? _trayIcon;
     private GlobalHotkey? _hotkey;          // キャプチャ用
     private GlobalHotkey? _scrapListHotkey; // スクラップリスト用 (M15)
@@ -40,17 +37,31 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        // 二重起動は何も表示せず即終了する (SPEC 4.1)
-        _mutex = new Mutex(initiallyOwned: true, MutexName, out bool createdNew);
-        if (!createdNew)
+        _singleInstance = new SingleInstance();
+        if (!_singleInstance.IsFirstInstance)
         {
-            _mutex.Dispose();
-            _mutex = null;
-            Shutdown();
+            // 二重起動時、引数があれば既存プロセスへ渡してから即終了する。
+            // 引数が無ければ従来どおり何も表示せず即終了する (SPEC 4.1 改訂。SPEC-v1.8 1)
+            SingleInstance.TrySendArguments(e.Args);
+            _singleInstance.Dispose();
+            _singleInstance = null;
+
+            // Shutdown() ではなく Environment.Exit で即座に抜ける。
+            // OnStartup は Run() がメッセージポンプを回し始める前に走るため、ここで
+            // Shutdown() を呼んでも実際の終了は数秒遅れる (実測 ~3.2 秒)。
+            // 二重起動側は UI を一切持たず後始末も済んでいるので、待つ理由が無い
+            Environment.Exit(0);
             return;
         }
 
         base.OnStartup(e);
+
+        // 待ち受けは**起動処理より先に**始める。スクラップの復元やウィンドウ生成を待ってからだと
+        // その間に届いた引き渡しを取りこぼす (実測で 7 秒ほど遅れた)。
+        // ハンドラは任意のスレッドから呼ばれるため UI スレッドへ移す (SPEC-v1.8 2.6)
+        _singleInstance.ArgumentsReceived += args =>
+            Dispatcher.InvokeAsync(() => HandleCommandLine(CommandLineArgs.Parse(args)));
+        _singleInstance.StartListening();
 
         // UI を作る前に言語を確定させる。トレイメニューは生成時に文字列が確定するため順序が重要
         LanguageService.Apply(_settings.Current.Language);
@@ -78,7 +89,87 @@ public partial class App : Application
         _scrapListHotkey = new GlobalHotkey();
         _scrapListHotkey.Pressed += OnScrapListRequested;
         RegisterHotkeysOrWarn();
+
+        // 自プロセスの引数も同じ経路で処理する。常駐の初期化 (ホットキー登録まで) を
+        // 終えてから実行するのは、/C:Capture のオーバーレイが登録失敗の警告を隠さないため
+        // (SPEC-v1.8 2.4)
+        HandleCommandLine(CommandLineArgs.Parse(e.Args));
     }
+
+    /// <summary>
+    /// コマンドライン引数の要求を処理する (SPEC-v1.8 2.1)。
+    /// 初回起動の自引数と、二重起動側からパイプで届いた引数の**両方**がここへ来る。
+    /// </summary>
+    private void HandleCommandLine(CommandLineArgs args)
+    {
+        if (args.IsEmpty)
+        {
+            return;
+        }
+
+        // オプションを先に処理してから画像を処理する (SPEC-v1.8 2.2)
+        switch (args.Action)
+        {
+            case CommandLineAction.Capture:
+                OnCaptureRequested(this, EventArgs.Empty);
+                break;
+            case CommandLineAction.Option:
+                OnSettingsRequested(this, EventArgs.Empty);
+                break;
+        }
+
+        if (args.CaptureRect is { } rect)
+        {
+            OnCaptureRectRequested(rect);
+        }
+
+        if (args.ImagePaths.Count > 0)
+        {
+            OnImageFilesRequested(args.ImagePaths);
+        }
+    }
+
+    /// <summary>
+    /// 指定矩形をキャプチャしてスクラップ化する (SPEC-v1.8 2.5。<c>/R:</c>)。
+    /// </summary>
+    private void OnCaptureRectRequested(System.Windows.Int32Rect rect)
+    {
+        try
+        {
+            _capture.CaptureRect(rect);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or ExternalException)
+        {
+            MessageBox.Show(Strings.CaptureFailedMessage, AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    /// <summary>
+    /// 引数で渡された画像ファイルをスクラップ化する (SPEC-v1.8 2.2)。
+    /// 配置はカーソル位置で、複数枚は 1 枚ずつずらす (SPEC-v1.6 3.4 / 3.5 と同じ規則)。
+    /// </summary>
+    private void OnImageFilesRequested(IReadOnlyList<string> paths)
+    {
+        if (_scraps is null)
+        {
+            return;
+        }
+
+        // 読めないファイルは ImageFileLoader が読み飛ばす (SPEC-v1.6 3.2)。
+        // 生成は必ず ScrapManager 経由とする (中央管理を崩さない。SPEC-v1.5 3.1)
+        var images = ImageFileLoader.LoadFiles(paths);
+        var cursor = System.Windows.Forms.Cursor.Position; // 物理px (仮想スクリーン座標)
+        int index = 0;
+        foreach (var image in images)
+        {
+            int offset = index * PasteCascadeOffsetPx;
+            _scraps.AddExternalAt(image, cursor.X + offset, cursor.Y + offset);
+            index++;
+        }
+    }
+
+    // 複数枚をまとめて貼る際に 1 枚ごとにずらす量 (物理px)。ScrapManager 側と同じ値
+    private const int PasteCascadeOffsetPx = 24;
 
     /// <summary>終了中フラグを立ててからシャットダウンする。付箋の閉じがゴミ箱行きへ委譲されないようにする。</summary>
     private void ShutdownApp()
@@ -102,12 +193,9 @@ public partial class App : Application
         _trayIcon?.Dispose();
         _trayIcon = null;
 
-        if (_mutex is not null)
-        {
-            _mutex.ReleaseMutex();
-            _mutex.Dispose();
-            _mutex = null;
-        }
+        // パイプの待ち受け停止と Mutex の解放をまとめて行う
+        _singleInstance?.Dispose();
+        _singleInstance = null;
 
         base.OnExit(e);
     }
