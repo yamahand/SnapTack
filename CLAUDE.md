@@ -142,12 +142,21 @@ Inno Setup はローカルに無いことが多い。その場合 `.iss` の変�
 ## リリース手順
 
 ```powershell
-# 1. Directory.Build.props の <Version> を更新してコミット
-# 2. タグを push すると CI がドラフト Release を作る
+# 1. Directory.Build.props の <Version> を更新
+# 2. docs/release-notes-vX.Y.Z.md を書く (英日併記。既存版を雛形にする)
+#    ※ このファイルがタグ名と一致しないとリリースワークフローは失敗する
+# 3. README (en/ja) を新機能に追従させてコミット
+# 4. タグを push すると CI がドラフト Release を作る
 git tag v1.4.0
 git push origin v1.4.0
-# 3. Releases でリリースノートを書いて手動で公開
+# 5. Releases で内容を確認して手動で公開
 ```
+
+リリース本文は **`docs/release-notes-vX.Y.Z.md` がそのまま入る**(末尾に直前タグとの
+`Full Changelog` リンクだけ自動で付く)。GitHub の自動生成 (`generate_release_notes`) は
+**使っていない** — PR 名は開発都合の文言で利用者向けではなく、機能単位で書いたノートと
+内容が二重になるため。ノートを置き忘れた場合は黙って自動生成へ倒さず、ワークフローを
+失敗させて気付けるようにしてある。
 
 ## 作業ルール
 
