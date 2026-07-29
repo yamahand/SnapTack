@@ -17,7 +17,8 @@ Clip part of a document, an error message, or a reference image in an instant, p
 - Notes are always on top. Drag to move, `Ctrl+C` to copy, `Ctrl+S` to save, middle-click to close
 - Scroll the mouse wheel to change opacity, double-click to fold a note into a small tile to save space
 - **Save as PNG, JPEG, or BMP** (JPEG quality is adjustable), or use **quick save** to drop a timestamped file into a folder of your choice with no dialog at all. Optionally copies the saved path to the clipboard
-- **Make notes from images you already have** — paste from the clipboard via the tray menu or `Ctrl+V` on a note, or drop image files onto the scrap list
+- **Make notes from images you already have** — paste from the clipboard via the tray menu or `Ctrl+V` on a note, or drop image files onto the scrap list or straight onto `SnapTack.exe`
+- **Drive it from outside** — pass image files on the command line, or use `/C:Capture`, `/C:Option`, and `/R:X,Y,W,H`. Handed to the already-running instance, so it never starts twice
 - **Edit notes after you pin them** — scale from 25% to 400%, rotate, flip, and trim away the parts you don't need. Editing is non-destructive, so **Reset edits** always brings the original back
 - **Scrap list** — open it with **Ctrl+Shift+L** to browse every scrap as a thumbnail. Show or hide notes, copy or save them, and recover closed ones from the trash
 - **Scraps persist across restarts.** Pinned notes come back where you left them next time you launch. Closing a note sends it to the trash instead of losing it, and the trash auto-clears after a configurable number of days
@@ -105,9 +106,27 @@ You don't have to capture to create a scrap:
 | How | Where |
 |---|---|
 | **Paste from clipboard** | Tray menu, or `Ctrl+V` while a note has focus |
-| **Drag and drop** | Drop image files anywhere on the scrap list window |
+| **Drag and drop** | Drop image files anywhere on the scrap list window, or onto `SnapTack.exe` itself |
+| **Command line** | `SnapTack.exe "C:\pic.png"` |
 
 Pasting accepts a copied image, copied files, or text that happens to be an image file path. Supported formats are PNG, JPEG, BMP, GIF, and TIFF — plus WebP and AVIF when the matching Windows codec is installed (they ship with Windows 11 but can be removed; files are skipped rather than failing if the codec is missing).
+
+### Command line
+
+Image files given as arguments become notes at the cursor. If SnapTack is already running, the arguments are handed to that instance — **it never starts a second copy**, and dropping files onto the .exe just adds more notes.
+
+| Option | What it does |
+|---|---|
+| `/C:Capture` | Starts a capture (the region-select overlay) |
+| `/C:Option` | Opens the settings window |
+| `/R:X,Y,W,H` | Captures that exact rectangle with no region selection, in physical pixels |
+
+```powershell
+SnapTack.exe "C:\pic.png" "D:\shot.jpg"   # pin two images
+SnapTack.exe /R:100,200,640,480           # grab a fixed region, no prompt
+```
+
+`/R:` is meant for scripting, so it wins over `/C:Capture` if you pass both. Options that can't be parsed are ignored rather than reported — an unattended run should never stop on a dialog. Running `SnapTack.exe` with no arguments while it is already resident still does nothing, exactly as before.
 
 ## Building
 
