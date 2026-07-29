@@ -65,6 +65,82 @@ public sealed class CaptureController
     }
 
     /// <summary>
+    /// 範囲選択を挟まず、指定矩形 (物理px、仮想スクリーン座標) を切り出して
+    /// <see cref="SelectionCompleted"/> を発火する (SPEC-v1.8 2.5。<c>/R:</c> オプション)。
+    /// </summary>
+    /// <remarks>
+    /// 矩形が複数モニタにまたがる場合は、**左上位置のあるモニタ内へクランプ**する。
+    /// モニタまたぎキャプチャは混在 DPI の正規化方針が未決のためスコープ外
+    /// (SPEC-v1.x 2.4 の判断を維持)。クランプの結果が空になる場合は何もしない。
+    /// キャプチャ失敗時は例外を投げる(呼び出し側で通知して継続する)。
+    /// </remarks>
+    public void CaptureRect(Int32Rect physicalRect)
+    {
+        // オーバーレイ表示中に横から切り出すと、フリーズ画像とオーバーレイの対応が
+        // 崩れて紛らわしいため、通常のキャプチャ要求と同じく無視する (SPEC 4.3)
+        if (IsActive)
+        {
+            return;
+        }
+
+        var monitors = _capturer.EnumerateMonitors();
+        var monitor = FindMonitorFor(monitors, physicalRect);
+        if (monitor is null)
+        {
+            return;
+        }
+
+        var bounds = monitor.PhysicalBounds;
+        // モニタ原点からの相対座標へ直してからクランプする (切り出しは画像内座標のため)
+        var relative = new Int32Rect(
+            physicalRect.X - bounds.X, physicalRect.Y - bounds.Y,
+            physicalRect.Width, physicalRect.Height);
+        var clamped = RectMath.ClampToScreenshot(relative, bounds.Width, bounds.Height);
+        if (clamped.Width <= 0 || clamped.Height <= 0)
+        {
+            return;
+        }
+
+        var screenshot = _capturer.CaptureMonitor(monitor);
+        var cropped = new CroppedBitmap(screenshot, clamped);
+        cropped.Freeze(); // ウィンドウ間で使い回すため (CLAUDE.md のコーディング規約)
+
+        // 通知する矩形は仮想スクリーン座標へ戻す。スクラップは指定位置にそのまま重なる
+        SelectionCompleted?.Invoke(cropped, new Int32Rect(
+            clamped.X + bounds.X, clamped.Y + bounds.Y, clamped.Width, clamped.Height));
+    }
+
+    /// <summary>
+    /// 指定矩形を担当するモニタを選ぶ。左上位置を含むモニタを優先し、
+    /// どのモニタにも含まれなければ矩形と交差するモニタを使う。
+    /// </summary>
+    private static MonitorInfo? FindMonitorFor(IReadOnlyList<MonitorInfo> monitors, Int32Rect rect)
+    {
+        foreach (var monitor in monitors)
+        {
+            var b = monitor.PhysicalBounds;
+            if (rect.X >= b.X && rect.X < b.X + b.Width &&
+                rect.Y >= b.Y && rect.Y < b.Y + b.Height)
+            {
+                return monitor;
+            }
+        }
+
+        // 左上がモニタ外 (モニタ間の隙間や画面外) でも、矩形の一部が映っていれば
+        // その分だけ切り出す。交差が無ければ諦める
+        foreach (var monitor in monitors)
+        {
+            var b = monitor.PhysicalBounds;
+            if (rect.X < b.X + b.Width && rect.X + rect.Width > b.X &&
+                rect.Y < b.Y + b.Height && rect.Y + rect.Height > b.Y)
+            {
+                return monitor;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
     /// どれか1つのオーバーレイが閉じたら(確定・キャンセルとも)残りも全て閉じ、
     /// 確定していれば結果を通知する。
     /// </summary>
