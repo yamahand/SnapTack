@@ -31,7 +31,11 @@ public sealed class CommandLineArgs
     /// <summary>スクラップ化する画像ファイルのパス。順序は引数の並び順を保つ。</summary>
     public IReadOnlyList<string> ImagePaths { get; init; } = [];
 
-    /// <summary><c>/C:</c> で要求された動作。</summary>
+    /// <summary>
+    /// <c>/C:</c> で要求された動作。
+    /// <see cref="CaptureRect"/> がある場合、<see cref="CommandLineAction.Capture"/> は
+    /// 競合するため <see cref="CommandLineAction.None"/> に解決済み (SPEC-v1.8 2.5)。
+    /// </summary>
     public CommandLineAction Action { get; init; } = CommandLineAction.None;
 
     /// <summary>
@@ -49,6 +53,8 @@ public sealed class CommandLineArgs
     /// <remarks>
     /// エラーを返さないのは、バッチやランチャーからの誤起動で常駐アプリがモーダルダイアログを
     /// 出すと無人実行を止めてしまうため。SnapTack は引数の検証器ではない。
+    /// 競合するオプションの解決もここで行うため、**返す結果はそのまま実行してよい**
+    /// (呼び出し側で組み合わせを判断しなくてよい)。
     /// </remarks>
     public static CommandLineArgs Parse(IEnumerable<string> args)
     {
@@ -81,6 +87,15 @@ public sealed class CommandLineArgs
                 captureRect = parsedRect;
             }
             // 未知のオプションは無視する (SPEC-v1.8 2.2)
+        }
+
+        // /R: (非対話の範囲指定) と /C:Capture (対話的な範囲選択) は同時に成り立たない。
+        // 明示的に座標を指定している方を優先し、/C:Capture は落とす (SPEC-v1.8 2.5)。
+        // 実行側で捌かずここで解決するのは、自プロセス起動とパイプ受信の 2 経路で
+        // 判断がズレないようにするため。/C:Option は別ウィンドウなので落とさない
+        if (captureRect is not null && action == CommandLineAction.Capture)
+        {
+            action = CommandLineAction.None;
         }
 
         return new CommandLineArgs

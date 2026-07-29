@@ -107,17 +107,11 @@ public partial class App : Application
             return;
         }
 
-        // オプションを先に処理してから画像を処理する (SPEC-v1.8 2.2)
-        switch (args.Action)
-        {
-            case CommandLineAction.Capture:
-                OnCaptureRequested(this, EventArgs.Empty);
-                break;
-            case CommandLineAction.Option:
-                OnSettingsRequested(this, EventArgs.Empty);
-                break;
-        }
-
+        // 実行順は /R: → 画像パス → /C: アクション (SPEC-v1.8 2.2)。
+        // オーバーレイ (/C:Capture) を最後に回すのは、先に出すと後続で作った付箋が
+        // オーバーレイの裏に隠れて「消えた」ように見えるため。
+        // /R: を先頭にするのは、これが「今の画面」を切り出す操作で、
+        // 付箋が増える前の画面を対象にするのが自然だから
         if (args.CaptureRect is { } rect)
         {
             OnCaptureRectRequested(rect);
@@ -126,6 +120,20 @@ public partial class App : Application
         if (args.ImagePaths.Count > 0)
         {
             OnImageFilesRequested(args.ImagePaths);
+        }
+
+        // /C:Capture と /R: の同時指定は Parse が解決済み (/R: が勝つ) なので、
+        // ここへ来る Capture は /R: を伴わないものに限られる。
+        // なお Start() は同期的に画面をフリーズさせるため、上で作った付箋は
+        // フリーズ画像に写り込む。実際に画面上に在るものなので、これは意図どおり
+        switch (args.Action)
+        {
+            case CommandLineAction.Capture:
+                OnCaptureRequested(this, EventArgs.Empty);
+                break;
+            case CommandLineAction.Option:
+                OnSettingsRequested(this, EventArgs.Empty);
+                break;
         }
     }
 

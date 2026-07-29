@@ -125,11 +125,66 @@ public class CommandLineArgsTests
     [Fact]
     public void オプションと画像パスを同時に指定できる()
     {
-        var args = CommandLineArgs.Parse(["/C:Capture", @"C:\pic.png", "/R:0,0,100,100"]);
+        // /C:Option は /R: と両立する (設定画面は別ウィンドウのため)。
+        // /C:Capture との併用は competing なので下の競合テスト側で扱う
+        var args = CommandLineArgs.Parse(["/C:Option", @"C:\pic.png", "/R:0,0,100,100"]);
 
-        Assert.Equal(CommandLineAction.Capture, args.Action);
+        Assert.Equal(CommandLineAction.Option, args.Action);
         Assert.Equal([@"C:\pic.png"], args.ImagePaths);
         Assert.Equal(new Int32Rect(0, 0, 100, 100), args.CaptureRect);
+    }
+
+    // ===== /C:Capture と /R: の競合 (SPEC-v1.8 2.5) =====
+
+    [Fact]
+    public void 矩形指定があればキャプチャオプションは無視される()
+    {
+        // 非対話の明示指定 (/R:) を優先する。対話キャプチャはホットキーで代替できる
+        var args = CommandLineArgs.Parse(["/C:Capture", "/R:100,100,400,300"]);
+
+        Assert.Equal(CommandLineAction.None, args.Action);
+        Assert.Equal(new Int32Rect(100, 100, 400, 300), args.CaptureRect);
+    }
+
+    [Fact]
+    public void 競合の解決は引数の並び順に依存しない()
+    {
+        var args = CommandLineArgs.Parse(["/R:100,100,400,300", "/C:Capture"]);
+
+        Assert.Equal(CommandLineAction.None, args.Action);
+        Assert.Equal(new Int32Rect(100, 100, 400, 300), args.CaptureRect);
+    }
+
+    [Fact]
+    public void 設定画面オプションは矩形指定と併用できる()
+    {
+        // /C:Option は範囲選択と競合しない (別ウィンドウ) ため落とさない
+        var args = CommandLineArgs.Parse(["/C:Option", "/R:100,100,400,300"]);
+
+        Assert.Equal(CommandLineAction.Option, args.Action);
+        Assert.Equal(new Int32Rect(100, 100, 400, 300), args.CaptureRect);
+    }
+
+    [Fact]
+    public void 不正な矩形指定ならキャプチャオプションは生き残る()
+    {
+        // 競合解決が働くのは**有効な** /R: がある時だけ。
+        // /R: が無効なら競合していないので /C:Capture をそのまま活かす
+        var args = CommandLineArgs.Parse(["/C:Capture", "/R:zzz"]);
+
+        Assert.Equal(CommandLineAction.Capture, args.Action);
+        Assert.Null(args.CaptureRect);
+    }
+
+    [Fact]
+    public void 矩形指定と画像パスは併用できる()
+    {
+        // 競合するのは /C:Capture だけで、画像パスは巻き添えにしない
+        var args = CommandLineArgs.Parse(["/C:Capture", "/R:0,0,50,50", @"C:\pic.png"]);
+
+        Assert.Equal(CommandLineAction.None, args.Action);
+        Assert.Equal(new Int32Rect(0, 0, 50, 50), args.CaptureRect);
+        Assert.Equal([@"C:\pic.png"], args.ImagePaths);
     }
 
     [Fact]
@@ -159,8 +214,9 @@ public class CommandLineArgsTests
     [Fact]
     public void 直列化と復元を経ても解析結果が同じになる()
     {
-        // 初回起動と二重起動で解釈結果が一致すること (SPEC-v1.8 2.1)
-        string[] original = [@"C:\pic.png", "/C:Capture", "/R:10,20,30,40"];
+        // 初回起動と二重起動で解釈結果が一致すること (SPEC-v1.8 2.1)。
+        // Action が落ちない組み合わせを使い、3 つのフィールドすべてを意味のある値で比べる
+        string[] original = [@"C:\pic.png", "/C:Option", "/R:10,20,30,40"];
 
         var direct = CommandLineArgs.Parse(original);
         var viaPipe = CommandLineArgs.Parse(
@@ -169,5 +225,20 @@ public class CommandLineArgsTests
         Assert.Equal(direct.ImagePaths, viaPipe.ImagePaths);
         Assert.Equal(direct.Action, viaPipe.Action);
         Assert.Equal(direct.CaptureRect, viaPipe.CaptureRect);
+        Assert.Equal(CommandLineAction.Option, viaPipe.Action);
+    }
+
+    [Fact]
+    public void 競合の解決はパイプ経由でも同じ結果になる()
+    {
+        // 自プロセス起動とパイプ受信で判断がズレないこと。
+        // 競合解決を Parse に集約した理由がこれ (SPEC-v1.8 2.5)
+        string[] original = ["/C:Capture", "/R:10,20,30,40"];
+
+        var viaPipe = CommandLineArgs.Parse(
+            CommandLineArgs.DeserializeArgs(CommandLineArgs.SerializeArgs(original)));
+
+        Assert.Equal(CommandLineAction.None, viaPipe.Action);
+        Assert.Equal(new Int32Rect(10, 20, 30, 40), viaPipe.CaptureRect);
     }
 }
